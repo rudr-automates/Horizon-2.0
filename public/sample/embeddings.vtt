@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:15.760
+An embedding is a list of numbers that represents a piece of content. A trained model maps related meanings to nearby positions in a vector space. The numbers are not hand-written labels, and their meaning depends on the model.
+
+00:00:15.760 --> 00:00:36.720
+Imagine the phrases car repair and fixing an automobile. Their words differ, but their meanings are related. Embeddings can place them near each other. Cosine similarity measures how closely two vectors point in the same direction. It is a similarity score, not a probability of correctness.
+
+00:00:36.720 --> 00:00:56.200
+Encode the query and the documents with the same compatible embedding model. Compare their vectors and rank candidate passages. An embedding does not verify a fact. It helps find material that might be useful, and the retrieved text still needs inspection.

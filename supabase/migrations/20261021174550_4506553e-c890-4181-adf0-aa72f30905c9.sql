@@ -1,0 +1,1 @@
+UPDATE public.lessons SET video_url = '/__l5e/assets-v1/65c7ddfd-6c88-4160-89be-cce6e43ffdb8/hybrid-search.mp4' WHERE id = 'hybrid-search'; UPDATE public.lessons SET video_url = '/__l5e/assets-v1/008b3ac4-2000-4445-941e-35f958bb8a65/grounded-answers.mp4' WHERE id = 'grounded-answers';

@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:20.320
+Keyword search rewards exact terms. Semantic search uses embeddings to match related meanings. An error code such as E forty two benefits from exact matching, while a paraphrased question may benefit from semantic matching. Neither method is best for every query.
+
+00:00:20.320 --> 00:00:40.600
+Hybrid retrieval combines keyword and vector search. Reciprocal rank fusion is one way to merge results. For each result, add one divided by a constant plus its rank in each list. This uses rank rather than pretending that different search scores share the same scale.
+
+00:00:40.600 --> 00:01:00.200
+Search only sources the learner is allowed to read. For a video question at the current position, exclude future transcript segments before ranking evidence. Preserve the source title and timestamp with each passage. Good relevance never overrides ownership or scope.

@@ -1,0 +1,24 @@
+node_modules
+dist
+.output
+.vinxi
+.vercel
+.nitro
+.tanstack
+.wrangler
+pnpm-lock.yaml
+package-lock.json
+bun.lock
+routeTree.gen.ts
+
+# Downloaded course material and third-party assets: not project source.
+download
+external-resources
+lists
+pages
+public
+resources
+static_resources
+static_shared
+video_galleries
+scripts/fixtures

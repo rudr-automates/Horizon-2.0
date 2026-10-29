@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:19.320
+Retrieval augmented generation supplies selected source passages to a language model. The model can then draft an answer with references to those passages. A knowledge graph can connect concepts and resources, but a graph edge is not automatically proof that a claim is true.
+
+00:00:19.320 --> 00:00:38.920
+A useful citation identifies a source and its location, such as a video timestamp or a PDF page. Check that the cited passage actually supports the claim. Adding a citation label does not make an answer grounded, and retrieval does not eliminate hallucinations.
+
+00:00:38.920 --> 00:01:01.120
+If the permitted evidence is missing or contradictory, say that there is not enough support. Distinguish source-supported facts from general explanation. Grounded systems reduce risk through permission checks, scoped retrieval, source inspection, and honest uncertainty, not through a promise of perfect accuracy.
