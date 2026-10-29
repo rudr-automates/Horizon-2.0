@@ -427,14 +427,14 @@ template`). The root mirror files were removed and `vercel.json` now declares
 
 ### 10.2 Production configuration
 
-| Setting                 | State                                                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Framework preset        | `tanstack-start` (repo config; project settings must match)                                                                 |
-| Root / output directory | Repository root; no output-directory override                                                                               |
-| Build / install command | `NITRO_PRESET=vercel npm run build` / `npm ci`                                                                              |
-| Environment variables   | Supabase URL/key/project id (server + `VITE_`), Gemini, Groq and Jina keys — all set for production and preview             |
-| Supabase Auth site URL  | `https://horizonreboot.vercel.app`; allowlist limited to that origin, the deployment origin, preview wildcard and localhost |
-| Service-role key        | Not present in this workspace and not used by any browser code                                                              |
+| Setting                 | State                                                                                                                                                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework preset        | `tanstack-start` (repo config; project settings must match)                                                                                                                                                             |
+| Root / output directory | Repository root; no output-directory override                                                                                                                                                                           |
+| Build / install command | `NITRO_PRESET=vercel npm run build` / `npm ci`                                                                                                                                                                          |
+| Environment variables   | Supabase URL/key/project id (server + `VITE_`), Gemini, Groq and Jina keys — all set for production and preview                                                                                                         |
+| Supabase Auth site URL  | Must be `https://horizonreboot.vercel.app` with a narrow allowlist; **not verifiable from this workspace** — the management token in `.env` returns 401, so confirm it in Authentication → URL Configuration (see 10.7) |
+| Service-role key        | Not present in this workspace and not used by any browser code                                                                                                                                                          |
 
 ### 10.3 Uploads: direct to storage
 
@@ -488,7 +488,46 @@ MIT lecture PDF indexed into 108 passages; Markdown indexed; a 14.94 MB MP4
 uploaded directly, attached to a new lesson and opened as `video/mp4`; every
 temporary record and object was deleted afterwards.
 
-### 10.6 Remaining limitations
+### 10.7 Final live verification on the deployed domain
+
+Run against `https://horizonreboot.vercel.app/` on the deployment built from
+commit `64415ad` (`main`, Vercel production, `READY`/`PROMOTED`, alias assigned).
+
+| Request                                          | Observed                                                                                                                                                                                    |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                              | `200` HTML, `<title>Horizon 2.0 — Learning that understands your context`, landing sections render, no console errors                                                                       |
+| `/sign-in`                                       | `200` HTML, real Horizon sign-in form (email, password, forgot password)                                                                                                                    |
+| `/sign-up`, `/library`, `/courses`               | `200` HTML from the app router (client-side gate redirects when signed out)                                                                                                                 |
+| `/dashboard` (signed out)                        | `307` → `/sign-in?redirect=%2Fdashboard`                                                                                                                                                    |
+| unknown page route                               | app 404 page, not the homepage                                                                                                                                                              |
+| `/api/ai/health`                                 | `200 application/json` — gemini + groq configured, jina v3 1024-d, `paidFallback: false`, no secrets                                                                                        |
+| unknown `/api/*`                                 | `404 application/json`                                                                                                                                                                      |
+| `PUT`/`DELETE /api/ai/health`                    | `405 application/json`                                                                                                                                                                      |
+| `POST /api/{resources,videos}/upload` signed out | `401 application/json`                                                                                                                                                                      |
+| same, `Origin: https://evil.example`             | `403 application/json`                                                                                                                                                                      |
+| CSS / JS assets                                  | `200 text/css`, `200 application/javascript`                                                                                                                                                |
+| `/favicon.ico` / `.svg` / `apple-touch-icon`     | `200`, local Horizon icon (sha256 matches `public/favicon.ico`); HTML links all three                                                                                                       |
+| Lovable branding                                 | none — no `lovable`, `l5e` or editor badge in the served HTML                                                                                                                               |
+| `/robots.txt`, `/course/mit-15-773/*.pdf`        | `200 text/plain`, `200 application/pdf` (4.09 MB)                                                                                                                                           |
+| Env vars in Vercel (production scope)            | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_PROJECT_ID`, three `VITE_` equivalents, `GEMINI_API_KEY`, `GROQ_API_KEY`, `JINA_API_KEY` all present; values encrypted and never read |
+| Supabase security advisor                        | one warning: leaked-password protection disabled (project setting, not code); no RLS findings                                                                                               |
+
+The live provider suite was re-run against the real project in this pass
+(`RUN_LIVE_WORKFLOW=1`): 7/7 — RLS read of the seeded course, grounded cited
+answer, persisted practice check, owner-scoped note ingestion, exam and
+interview modes, real PPTX ingestion with slide locators, and refusal of an
+unrelated question.
+
+### 10.8 Media audit of the seeded catalogue
+
+14 lessons: 11 point at YouTube and play; 3 (`embeddings`, `hybrid-search`,
+`grounded-answers`) still reference retired `/__l5e/assets-v1/…` files that no
+longer exist anywhere. Those three deliberately render an explicit
+"demonstration video is no longer available" panel, and their transcripts,
+citations and tutoring continue to work. Their 26 resources are all `ready`
+(11 video transcripts, 14 PDFs, 1 Markdown) and none reference the retired host.
+
+### 10.9 Remaining limitations and manual actions
 
 - **Deferred:** OCR for scanned PDFs and image-only slides (rejected with a clear
   message), token streaming, distributed quota accounting (the ledger is
@@ -498,3 +537,22 @@ temporary record and object was deleted afterwards.
   Their transcripts, citations and tutoring still work.
 - The Vercel project's framework preset, root directory and environment
   variables are dashboard settings; confirm them in the Vercel UI.
+- **Manual check:** Supabase → Authentication → URL Configuration. Site URL
+  should be `https://horizonreboot.vercel.app` and the redirect allowlist should
+  hold only that origin, the Vercel deployment origin, the preview wildcard and
+  `http://localhost:8080/**`. This cannot be read from the workspace: the
+  `SUPABASE_ACCESS_TOKEN` in `.env` is expired (management API returns `401`).
+  Password sign-in works without it; email confirmation and recovery links use it.
+- **Manual check:** Vercel → Project → Settings → General. Framework preset must
+  stay a TanStack Start preset, Root Directory the repository root, and Output
+  Directory empty. The live project currently reports
+  `framework: tanstack-start-lovable` with no output override, which serves the
+  Nitro build correctly.
+- **Optional:** enable Supabase leaked-password protection (only advisor warning).
+- **Not verified in a browser:** the signed-in studio (tutor, quizzes, uploads) was
+  exercised through the API and the live provider suite, not by typing the
+  acceptance account's password into the deployed page. A quick manual sign-in
+  at `/sign-in` is the remaining human check.
+- **Deployment pipeline:** a push to `main` produced production deployment
+  `dpl_DpJVXsRdk1XwcVkGzuTojAsnC22A` about one minute after the push, so the
+  GitHub → Vercel flow works as configured.
