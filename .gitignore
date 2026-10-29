@@ -55,6 +55,15 @@ supabase/.temp/
 /content_map.json
 /data.json
 
+# Root-level documents of the downloaded mirror. Horizon's own HTML is rendered
+# by TanStack Start (src/routes/index.tsx) and its static files are served from
+# public/, so a committed root index.html is published as the whole site by a
+# static Vercel preset and buries the app. Keep these out of the repository.
+/index.html
+/sitemap.xml
+/robots.txt
+/favicon.ico
+
 # TypeScript incremental build metadata
 *.tsbuildinfo
 

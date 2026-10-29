@@ -116,11 +116,34 @@ The app builds with Nitro's Vercel preset:
 NITRO_PRESET=vercel npm run build
 ```
 
-This produces `.vercel/output`. `vercel.json` uses that command. Set the
-environment variables above in the Vercel project; `VITE_*` values are required
-at build time, while AI and Supabase server values are required at runtime.
-`pdfjs-dist` is bundled into the server function. No deployment is performed by
-this repository.
+This produces `.vercel/output` — the Vercel Build Output API tree with
+`functions/__server.func`, `static/` and a `config.json` whose last rule sends
+every unmatched request to `/__server`. `vercel.json` pins both the build command
+and `"framework": "tanstack-start"`, and deliberately leaves the output
+directory unset because the TanStack Start/Nitro preset already consumes
+`.vercel/output`.
+
+If the deployment instead serves plain HTML for `/`, `/sign-in` and
+`/api/ai/health`, Vercel is running the project as a static site (framework
+"Other"). That happens when the project has no recognised framework preset: the
+output directory falls back to `public/` or the repository root, and a stray
+root `index.html` becomes every route. `vercel.json` now sets the preset, and the
+root-level documents of the downloaded course mirror (`index.html`, `sitemap.xml`,
+`robots.txt`, `favicon.ico`) are deleted and gitignored so they cannot hijack `/`.
+The dashboard project must still match:
+
+| Setting          | Required value                                              |
+| ---------------- | ----------------------------------------------------------- |
+| Root Directory   | repository root (empty)                                     |
+| Framework Preset | TanStack Start                                              |
+| Build Command    | `NITRO_PRESET=vercel npm run build`                         |
+| Install Command  | `npm ci`                                                    |
+| Output Directory | **empty** — never `dist`, `public`, `.` or `.vercel/output` |
+
+Set the environment variables above in the Vercel project; `VITE_*` values are
+required at build time, while AI and Supabase server values are required at
+runtime. `pdfjs-dist` is bundled into the server function. No deployment is
+performed by this repository.
 
 ## Manual checks still required
 
