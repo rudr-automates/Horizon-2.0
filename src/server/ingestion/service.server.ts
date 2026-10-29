@@ -58,7 +58,7 @@ function extensionOf(filename: string): string {
 }
 
 /** Browsers disagree about text and code MIME types; the bucket allowlist is strict. */
-function contentTypeFor(extension: string): string {
+export function contentTypeFor(extension: string): string {
   if (extension === ".pdf") return "application/pdf";
   if (extension === ".pptx")
     return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
@@ -185,6 +185,11 @@ export async function ingestLessonResource(input: {
   filename: string;
   mimeType?: string;
   bytes: Uint8Array;
+  /**
+   * Object path the browser already uploaded to through a signed URL. When it
+   * is present the bytes are only read for extraction; nothing is re-uploaded.
+   */
+  storedPath?: string;
 }): Promise<IngestResult> {
   if (!input.userId.trim()) return failure("database_unavailable", "No authenticated learner.");
   if (input.bytes.byteLength > MAX_RESOURCE_BYTES) {
@@ -248,16 +253,23 @@ export async function ingestLessonResource(input: {
 
   const resourceId = randomUUID();
   const extension = extensionOf(input.filename);
-  const storagePath = `${input.userId}/${resourceId}${extension}`;
-  const contentType = contentTypeFor(extension);
-  const upload = await input.supabase.storage
-    .from(RESOURCE_BUCKET)
-    .upload(storagePath, input.bytes, { contentType, upsert: false });
-  if (upload.error) {
-    return failure(
-      "storage_unavailable",
-      "The private file store rejected this upload. Check that the storage migration is applied.",
-    );
+  const storagePath = input.storedPath ?? `${input.userId}/${resourceId}${extension}`;
+  if (!input.storedPath) {
+    // Server-side upload, used by scripts and tests where there is no browser to
+    // stream the file straight to storage. The product path never sends file
+    // bytes through a route handler, so it always passes storedPath instead.
+    const upload = await input.supabase.storage
+      .from(RESOURCE_BUCKET)
+      .upload(storagePath, input.bytes, {
+        contentType: contentTypeFor(extension),
+        upsert: false,
+      });
+    if (upload.error) {
+      return failure(
+        "storage_unavailable",
+        "The private file store rejected this upload. Check that the storage migration is applied.",
+      );
+    }
   }
 
   const rows: StoredChunkRow[] = extracted.chunks.map((chunk, index) =>
@@ -304,6 +316,12 @@ export async function ingestLessonResource(input: {
     const batch = embedded.rows.slice(start, start + INSERT_BATCH);
     const inserted = await db.from("resource_chunks").insert(batch);
     if (inserted.error) {
+      console.error("[ingestion] chunk insert failed", {
+        lessonId: lesson.id,
+        batchSize: batch.length,
+        code: inserted.error.code,
+        reason: inserted.error.message,
+      });
       // Do not leave a half-indexed source or an orphaned private file behind.
       await input.supabase.storage.from(RESOURCE_BUCKET).remove([storagePath]);
       await db

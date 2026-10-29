@@ -61,9 +61,25 @@ function decodeXml(value: string): string {
     .replace(/&amp;/g, "&");
 }
 
+/**
+ * PostgreSQL text and jsonb cannot store NUL bytes or most control characters,
+ * and pdf.js does emit them for some glyphs. Dropping them here keeps a single
+ * rejected character from failing an otherwise valid document, while tabs and
+ * newlines survive so paragraph structure is preserved.
+ */
+function stripUnsafeCharacters(text: string): string {
+  let output = "";
+  for (const character of text) {
+    const code = character.codePointAt(0) ?? 0;
+    if (code === 0 || code === 127) continue;
+    if (code < 9 || (code > 10 && code < 32)) continue;
+    output += character;
+  }
+  return output;
+}
+
 function normalizeParagraphs(text: string): string {
-  return text
-    .replace(/\r\n?/g, "\n")
+  return stripUnsafeCharacters(text.replace(/\r\n?/g, "\n"))
     .replace(/[\t\f\v]+/g, " ")
     .replace(/[ ]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
@@ -193,6 +209,14 @@ async function extractPdf(bytes: Uint8Array): Promise<{
     throw new ExtractionError("invalid_file", "That file is not a valid PDF.");
   }
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // pdf.js normally loads its worker through a relative dynamic import, which a
+  // server bundle cannot follow — that made every PDF upload fail in the built
+  // app. Loading the worker module ourselves and exposing it where pdf.js looks
+  // for a main-thread handler keeps extraction working inside the bundle.
+  const workerScope = globalThis as { pdfjsWorker?: unknown };
+  if (!workerScope.pdfjsWorker) {
+    workerScope.pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  }
   const loading = pdfjs.getDocument({
     data: bytes,
     useSystemFonts: true,
@@ -202,7 +226,12 @@ async function extractPdf(bytes: Uint8Array): Promise<{
   let document: Awaited<typeof loading.promise>;
   try {
     document = await loading.promise;
-  } catch {
+  } catch (error) {
+    // The learner only needs the readable message, but a bundling or parser
+    // failure must stay diagnosable in the server log.
+    console.error("[ingestion] pdf open failed", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
     throw new ExtractionError("pdf_unreadable", "The PDF could not be opened.");
   }
 

@@ -1,15 +1,20 @@
 import { FileText, Presentation, Code2, Download, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import guide from "@/assets/study-guide.pdf.asset.json";
-import slides from "@/assets/course-slides.pptx.asset.json";
 
+// Every entry is a file this repository actually serves. The previous list
+// pointed at preview-hosted assets that no longer resolve outside that preview.
 const resources = [
-  { title: "The grounded AI study guide", detail: "PDF · 3 pages", icon: FileText, url: guide.url },
   {
-    title: "From vectors to evidence",
-    detail: "PowerPoint · 9 slides",
+    title: "MIT 15.773 lecture 1 slides",
+    detail: "PDF · course handout",
+    icon: FileText,
+    url: "/course/mit-15-773/mit15_773_s24_lec01.pdf",
+  },
+  {
+    title: "MIT 15.773 backpropagation example",
+    detail: "PDF · worked example",
     icon: Presentation,
-    url: slides.url,
+    url: "/course/mit-15-773/mit15_773_s24_lec02_backprop_example.pdf",
   },
   { title: "Course notes", detail: "Markdown", icon: BookOpen, url: "/sample/course-notes.md" },
   {

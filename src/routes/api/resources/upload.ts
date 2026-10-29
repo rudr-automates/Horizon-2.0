@@ -1,7 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { randomUUID } from "node:crypto";
 import { authenticateApiUser, isSameOrigin } from "@/server/auth/api-user.server";
-import { ingestLessonResource } from "@/server/ingestion/service.server";
+import {
+  contentTypeFor,
+  ingestLessonResource,
+  RESOURCE_BUCKET,
+} from "@/server/ingestion/service.server";
+import { unsupportedMethods } from "@/server/http/responses";
 import { MAX_RESOURCE_BYTES } from "@/server/ingestion/extract.server";
+import {
+  createSignedUpload,
+  extensionOf,
+  isOwnedPath,
+  readJsonBody,
+  removeObject,
+  safeFilename,
+} from "@/server/storage/signed-upload.server";
 
 const ALLOWED_EXTENSIONS = new Set([
   ".pdf",
@@ -38,88 +52,126 @@ const ALLOWED_EXTENSIONS = new Set([
   ".toml",
 ]);
 
+function json(body: unknown, status = 200): Response {
+  return Response.json(body, { status, headers: { "cache-control": "no-store" } });
+}
+
+function rejection(status: number, code: string, message: string): Response {
+  return json({ status: "error", code, message }, status);
+}
+
+/**
+ * Uploads are split into two small JSON calls because a Vercel Function cannot
+ * receive the 10 MB file body. "sign" authorises one object path inside the
+ * learner's own folder; the browser then uploads directly to Supabase Storage;
+ * "complete" downloads the object server-side, extracts and indexes it.
+ */
 export const Route = createFileRoute("/api/resources/upload")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         if (!isSameOrigin(request)) {
-          return Response.json({ status: "error", code: "forbidden" }, { status: 403 });
-        }
-        const declaredLength = Number(request.headers.get("content-length") ?? "0");
-        if (Number.isFinite(declaredLength) && declaredLength > MAX_RESOURCE_BYTES + 512_000) {
-          return Response.json(
-            {
-              status: "error",
-              code: "invalid_file",
-              message: "Files must be 10 MB or smaller.",
-            },
-            { status: 413 },
-          );
+          return rejection(403, "forbidden", "This upload was rejected as a cross-site request.");
         }
 
         const user = await authenticateApiUser(request);
         if (!user) {
-          return Response.json(
-            { status: "error", code: "unauthorized", message: "Sign in again to upload." },
-            { status: 401, headers: { "cache-control": "no-store" } },
-          );
+          return rejection(401, "unauthorized", "Sign in again to upload.");
         }
 
-        let form: FormData;
-        try {
-          form = await request.formData();
-        } catch {
-          return Response.json(
-            { status: "error", code: "invalid_file", message: "The upload was not readable." },
-            { status: 400 },
-          );
+        const body = await readJsonBody(request);
+        if (!body) {
+          return rejection(400, "invalid_file", "The upload request was not readable.");
         }
-        const file = form.get("file");
-        const lessonId = String(form.get("lessonId") ?? "").trim();
-        if (!(file instanceof File) || !lessonId) {
-          return Response.json(
-            {
-              status: "error",
-              code: "invalid_file",
-              message: "Choose a file and a lesson before uploading.",
-            },
-            { status: 400 },
-          );
+
+        const action = String(body["action"] ?? "");
+        const lessonId = String(body["lessonId"] ?? "").trim();
+        const filename = safeFilename(body["filename"]);
+        if (!lessonId) {
+          return rejection(400, "invalid_file", "Choose a lesson before uploading.");
         }
-        const filename = file.name.replace(/[\\/]/g, "_").slice(-200);
-        const extension = filename.toLowerCase().match(/(\.[a-z0-9]+)$/)?.[1] ?? "";
+        if (!filename) {
+          return rejection(400, "invalid_file", "Choose a file before uploading.");
+        }
+        const extension = extensionOf(filename);
         if (!ALLOWED_EXTENSIONS.has(extension)) {
-          return Response.json(
-            {
-              status: "error",
-              code: "unsupported_type",
-              message: `Supported files: PDF, PPTX, text, Markdown, captions and common code files.`,
-            },
-            { status: 415 },
-          );
-        }
-        if (file.size === 0) {
-          return Response.json(
-            { status: "error", code: "empty_content", message: "The selected file is empty." },
-            { status: 400 },
+          return rejection(
+            415,
+            "unsupported_type",
+            "Supported files: PDF, PPTX, text, Markdown, captions and common code files.",
           );
         }
 
-        const result = await ingestLessonResource({
-          supabase: user.supabase,
-          userId: user.userId,
-          lessonId,
-          filename,
-          mimeType: file.type,
-          bytes: new Uint8Array(await file.arrayBuffer()),
-        });
-        const status =
-          result.status === "ready" ? 201 : result.code === "database_unavailable" ? 503 : 400;
-        return Response.json(result, {
-          status,
-          headers: { "cache-control": "no-store" },
-        });
+        if (action === "sign") {
+          const size = Number(body["size"] ?? 0);
+          if (!Number.isFinite(size) || size <= 0) {
+            return rejection(400, "empty_content", "The selected file is empty.");
+          }
+          if (size > MAX_RESOURCE_BYTES) {
+            return rejection(413, "invalid_file", "Files must be 10 MB or smaller.");
+          }
+          const path = `${user.userId}/${randomUUID()}${extension}`;
+          const signed = await createSignedUpload(user.supabase, RESOURCE_BUCKET, path);
+          if (!signed.ok) return rejection(503, "storage_unavailable", signed.message);
+          return json({
+            status: "ok",
+            bucket: signed.upload.bucket,
+            path: signed.upload.path,
+            token: signed.upload.token,
+            // The bucket allowlist is strict, so the browser must not guess.
+            contentType: contentTypeFor(extension),
+          });
+        }
+
+        if (action === "complete") {
+          const path = String(body["path"] ?? "");
+          if (!isOwnedPath(user.userId, path) || extensionOf(path) !== extension) {
+            return rejection(403, "forbidden", "That uploaded file does not belong to you.");
+          }
+          const stored = await user.supabase.storage.from(RESOURCE_BUCKET).download(path);
+          if (stored.error || !stored.data) {
+            return rejection(
+              400,
+              "storage_unavailable",
+              "The uploaded file could not be read back. Upload it again.",
+            );
+          }
+          const bytes = new Uint8Array(await stored.data.arrayBuffer());
+          if (bytes.byteLength === 0) {
+            await removeObject(user.supabase, RESOURCE_BUCKET, path);
+            return rejection(400, "empty_content", "The selected file is empty.");
+          }
+          if (bytes.byteLength > MAX_RESOURCE_BYTES) {
+            await removeObject(user.supabase, RESOURCE_BUCKET, path);
+            return rejection(413, "invalid_file", "Files must be 10 MB or smaller.");
+          }
+
+          const result = await ingestLessonResource({
+            supabase: user.supabase,
+            userId: user.userId,
+            lessonId,
+            filename,
+            mimeType: stored.data.type,
+            bytes,
+            storedPath: path,
+          });
+          if (result.status !== "ready") {
+            // Nothing references the object yet, so take it out of storage.
+            await removeObject(user.supabase, RESOURCE_BUCKET, path);
+            const status =
+              result.code === "database_unavailable" || result.code === "storage_unavailable"
+                ? 503
+                : result.code === "lesson_not_found"
+                  ? 404
+                  : 400;
+            return json(result, status);
+          }
+          return json(result, 201);
+        }
+
+        return rejection(400, "invalid_file", "Unsupported upload step.");
       },
+      ...unsupportedMethods(["POST"]),
     },
   },
 });

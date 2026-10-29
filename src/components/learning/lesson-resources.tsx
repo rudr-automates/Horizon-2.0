@@ -41,6 +41,18 @@ const KIND: Record<ResourceKind, { label: string; icon: typeof FileText }> = {
 const ACCEPT =
   ".pdf,.pptx,.txt,.md,.markdown,.vtt,.srt,.webvtt,.py,.ts,.tsx,.js,.jsx,.json,.csv,.css,.html,.java,.c,.cpp,.h,.rs,.go,.rb,.php,.sql,.sh,.yaml,.yml,.toml";
 
+/** Mirrors MAX_RESOURCE_BYTES on the upload route; the server re-checks it. */
+const MAX_RESOURCE_BYTES = 10 * 1024 * 1024;
+
+interface SignedUpload {
+  status?: string;
+  message?: string;
+  bucket?: string;
+  path?: string;
+  token?: string;
+  contentType?: string;
+}
+
 function detailOf(resource: ResourceRow): string {
   const kind = KIND[resource.kind]?.label ?? "Resource";
   const metadata = resource.metadata ?? {};
@@ -138,6 +150,10 @@ export function LessonResources({
 
   async function upload(file: File) {
     if (uploading) return;
+    if (file.size > MAX_RESOURCE_BYTES) {
+      toast.error("Files must be 10 MB or smaller.");
+      return;
+    }
     setUploading(true);
     try {
       const { data } = await supabase.auth.getSession();
@@ -145,13 +161,53 @@ export function LessonResources({
         toast.error("Your session expired. Sign in again to upload.");
         return;
       }
-      const form = new FormData();
-      form.set("file", file);
-      form.set("lessonId", lessonId);
+      const headers = {
+        authorization: `Bearer ${data.session.access_token}`,
+        "content-type": "application/json",
+      };
+
+      // A Vercel Function cannot receive this file, so the browser uploads it
+      // straight into the learner's private folder using a signed grant.
+      const signResponse = await fetch("/api/resources/upload", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "sign",
+          lessonId,
+          filename: file.name,
+          size: file.size,
+        }),
+      });
+      const signed = (await signResponse.json().catch(() => null)) as SignedUpload | null;
+      if (
+        !signResponse.ok ||
+        signed?.status !== "ok" ||
+        !signed.bucket ||
+        !signed.path ||
+        !signed.token
+      ) {
+        toast.error(signed?.message ?? "This file cannot be uploaded.");
+        return;
+      }
+      const uploaded = await supabase.storage
+        .from(signed.bucket)
+        .uploadToSignedUrl(signed.path, signed.token, file, {
+          contentType: signed.contentType ?? file.type,
+        });
+      if (uploaded.error) {
+        toast.error("The file could not be stored privately. Nothing was indexed.");
+        return;
+      }
+
       const response = await fetch("/api/resources/upload", {
         method: "POST",
-        headers: { authorization: `Bearer ${data.session.access_token}` },
-        body: form,
+        headers,
+        body: JSON.stringify({
+          action: "complete",
+          lessonId,
+          filename: file.name,
+          path: signed.path,
+        }),
       });
       const payload = (await response.json().catch(() => null)) as {
         status?: string;

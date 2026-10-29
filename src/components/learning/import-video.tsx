@@ -82,13 +82,58 @@ export function ImportVideo({ userId }: { userId: string }) {
         setBusy(false);
         return;
       }
-      const form = new FormData();
-      form.set("file", file);
-      form.set("title", title.trim());
+      const headers = {
+        authorization: `Bearer ${data.session.access_token}`,
+        "content-type": "application/json",
+      };
+      // The video never passes through the server: it goes straight into the
+      // learner's private folder with a short-lived signed upload grant.
+      const signResponse = await fetch("/api/videos/upload", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "sign",
+          title: title.trim(),
+          filename: file.name,
+          size: file.size,
+        }),
+      });
+      const signed = (await signResponse.json().catch(() => null)) as {
+        status?: string;
+        message?: string;
+        bucket?: string;
+        path?: string;
+        token?: string;
+        contentType?: string;
+      } | null;
+      if (
+        !signResponse.ok ||
+        signed?.status !== "ok" ||
+        !signed.bucket ||
+        !signed.path ||
+        !signed.token
+      ) {
+        toast.error(signed?.message ?? "This video cannot be uploaded.");
+        return;
+      }
+      const uploaded = await supabase.storage
+        .from(signed.bucket)
+        .uploadToSignedUrl(signed.path, signed.token, file, {
+          contentType: signed.contentType ?? file.type,
+        });
+      if (uploaded.error) {
+        toast.error("The video could not be stored privately. Nothing was added.");
+        return;
+      }
       const response = await fetch("/api/videos/upload", {
         method: "POST",
-        headers: { authorization: `Bearer ${data.session.access_token}` },
-        body: form,
+        headers,
+        body: JSON.stringify({
+          action: "complete",
+          title: title.trim(),
+          filename: file.name,
+          path: signed.path,
+        }),
       });
       const payload = (await response.json().catch(() => null)) as {
         status?: string;

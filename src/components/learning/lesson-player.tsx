@@ -4,6 +4,14 @@ import type { Lesson } from "@/lib/learning-queries";
 import { clampPosition, watchedDelta } from "@/lib/learning";
 import { isStoredVideoUrl, resolveVideoUrl } from "@/lib/video-url";
 
+/**
+ * Some catalogue lessons were seeded with videos hosted by the previous preview
+ * environment. Those files no longer exist anywhere, so the player states that
+ * plainly instead of showing a control that can never play. Transcripts, slide
+ * citations and tutoring for these lessons are unaffected.
+ */
+const RETIRED_PREVIEW_MEDIA = "/__l5e/";
+
 export function LessonPlayer({
   lesson,
   initialPosition,
@@ -79,6 +87,19 @@ export function LessonPlayer({
     previous.current = { position: p.currentTime, wall: now };
     onPosition(p.currentTime, delta);
   }
+  if (lesson.video_url.startsWith(RETIRED_PREVIEW_MEDIA))
+    return (
+      <div className="relative aspect-video w-full overflow-hidden rounded-md bg-foreground text-background">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-foreground p-6 text-center text-sm">
+          <p className="font-medium">This demonstration video is no longer available.</p>
+          <p className="max-w-md text-background/80">
+            It was stored by the previous preview host and the file cannot be recovered. The
+            transcript and citations for this lesson still work, and you can upload your own MP4 or
+            WebM from Import video.
+          </p>
+        </div>
+      </div>
+    );
   if (failed)
     return (
       <div className="relative aspect-video w-full overflow-hidden rounded-md bg-foreground text-background">

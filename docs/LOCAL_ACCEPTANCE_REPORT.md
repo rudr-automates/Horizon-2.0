@@ -412,3 +412,89 @@ No changes made in this pass (already updated in prior pass to exclude `.env*` (
 - **Disk space reclaimed:** ~few hundred MB (mirrors + build artifacts).
 - **Regressions:** None. All checks pass. Core routes and educational resources intact.
 - **Ready for manual GitHub push:** Yes. No Git operations performed.
+
+## 10. Production takeover (Vercel) — 30 October 2026
+
+The prototype is now deployed and reachable at `https://horizonreboot.vercel.app/`.
+
+### 10.1 What was wrong in production
+
+The Vercel project served the downloaded MIT OpenCourseWare page instead of the
+app: a mirror `index.html` sat at the repository root, so TanStack Start used it
+as the HTML shell for every route (`[info] Using 'index.html' as renderer
+template`). The root mirror files were removed and `vercel.json` now declares
+`"framework": "tanstack-start"` with the Nitro Vercel build command.
+
+### 10.2 Production configuration
+
+| Setting                 | State                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Framework preset        | `tanstack-start` (repo config; project settings must match)                                                                 |
+| Root / output directory | Repository root; no output-directory override                                                                               |
+| Build / install command | `NITRO_PRESET=vercel npm run build` / `npm ci`                                                                              |
+| Environment variables   | Supabase URL/key/project id (server + `VITE_`), Gemini, Groq and Jina keys — all set for production and preview             |
+| Supabase Auth site URL  | `https://horizonreboot.vercel.app`; allowlist limited to that origin, the deployment origin, preview wildcard and localhost |
+| Service-role key        | Not present in this workspace and not used by any browser code                                                              |
+
+### 10.3 Uploads: direct to storage
+
+A Vercel Function cannot receive a body larger than 4.5 MB, while the product
+allows 10 MB documents and 200 MB videos. Both upload routes now work in two
+small JSON calls: `sign` authorises one object path inside the learner's own
+storage folder, the browser uploads straight to Supabase Storage with
+`uploadToSignedUrl`, and `complete` re-checks ownership, size and container
+signature before extracting and indexing. No file body passes through a
+function, and the old multipart handlers are gone.
+
+### 10.4 Defects found and fixed in this pass
+
+1. **PDF extraction was broken in every built server.** pdf.js loads its worker
+   through a relative dynamic import that a server bundle cannot follow, so all
+   PDF uploads failed with `pdf_unreadable` while unit tests passed (they run
+   unbundled). The worker module is now imported explicitly and registered on
+   `globalThis.pdfjsWorker`.
+2. **Real lecture PDFs failed to index.** Extracted text contained NUL/control
+   bytes, which PostgreSQL rejects (`22P05 unsupported Unicode escape
+sequence`). Extraction now strips them, with a regression test.
+3. **API routes answered the HTML app shell.** A POST to `/api/ai/health`
+   returned `200 text/html`, and unknown API paths returned the 404 page. API
+   routes now answer `405` with an `Allow` header, and `/api/*` catch-all paths
+   answer JSON `404`.
+4. **Demo media and marketing assets pointed at retired preview URLs.**
+   `src/assets/*.asset.json` pointed at `/__l5e/…`, which 404s anywhere outside
+   the old preview host. The course cover and resource list now use tracked
+   files, the dead pointer files are removed, and the three seeded demo lessons
+   show an explicit "this demonstration video is no longer available" panel
+   instead of a silent broken player.
+
+### 10.5 Verification performed
+
+| Check                                      | Result                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------ |
+| `npx vitest run`                           | 97 passed, 14 opt-in live-provider tests skipped                         |
+| `npx tsc --noEmit`                         | exit 0                                                                   |
+| `npm run lint`                             | exit 0 — 0 errors, 8 pre-existing `react-refresh` warnings               |
+| `npx prettier --check .`                   | exit 0                                                                   |
+| `npm run build`                            | exit 0                                                                   |
+| `NITRO_PRESET=vercel npm run build`        | exit 0 — `.vercel/output/config.json` routes filesystem then `/__server` |
+| Live workflow (`RUN_LIVE_WORKFLOW=1`)      | 7/7 with real Gemini + Groq fallback, PPTX ingestion, citations, refusal |
+| Upload acceptance against the built server | 20/20 — see below                                                        |
+
+The upload acceptance run used a real confirmed learner session and the real
+Supabase project against the production build: no session → `401`, `.exe` →
+`415`, 12 MB → `413`, foreign object path → `403`; a 4.76 MB PDF uploaded
+directly to storage and indexed with page locators and embeddings; the 3.9 MB
+MIT lecture PDF indexed into 108 passages; Markdown indexed; a 14.94 MB MP4
+uploaded directly, attached to a new lesson and opened as `video/mp4`; every
+temporary record and object was deleted afterwards.
+
+### 10.6 Remaining limitations
+
+- **Deferred:** OCR for scanned PDFs and image-only slides (rejected with a clear
+  message), token streaming, distributed quota accounting (the ledger is
+  in-memory and resets with the process), legacy `.ppt` conversion, and richer
+  entity-level graph retrieval.
+- **Deferred:** the three seeded demo lessons have no recoverable video file.
+  Their transcripts, citations and tutoring still work.
+- The Vercel project's framework preset, root directory and environment
+  variables are dashboard settings; confirm them in the Vercel UI.

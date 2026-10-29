@@ -57,6 +57,24 @@ describe("resource extraction", () => {
     expect(code.metadata["extension"]).toBe(".py");
   });
 
+  it("drops NUL and control bytes that PostgreSQL refuses", () => {
+    // pdf.js emits NUL/control characters for some glyphs, and storing them
+    // fails with 22P05 "unsupported Unicode escape sequence", so chunking
+    // removes them instead of losing the whole document.
+    const chunks = chunkPlainText(
+      "A neuron sums its inputs.\u0000\u0001\u0007 An activation adds non-linearity.\u007f",
+    );
+    expect(chunks).toHaveLength(1);
+    const text = chunks[0] ?? "";
+    const hasUnsafeCharacter = [...text].some((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      return code < 32 ? code !== 9 && code !== 10 : code === 127;
+    });
+    expect(hasUnsafeCharacter).toBe(false);
+    expect(text).toContain("A neuron sums its inputs.");
+    expect(text).toContain("An activation adds non-linearity.");
+  });
+
   it("parses WebVTT into timestamped, lesson-scoped video evidence", async () => {
     const captions = `WEBVTT
 

@@ -19,6 +19,7 @@ import { Route as AuthenticatedCoursesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as AuthenticatedCoursesCourseIdRouteImport } from './routes/_authenticated/courses_.$courseId'
 import { Route as AuthenticatedLearnLessonIdRouteImport } from './routes/_authenticated/learn.$lessonId'
 import { Route as ApiAiHealthRouteImport } from './routes/api/ai/health'
@@ -74,6 +75,11 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCoursesCourseIdRoute =
   AuthenticatedCoursesCourseIdRouteImport.update({
     id: '/courses_/$courseId',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/$': typeof ApiSplatRoute
   '/courses/$courseId': typeof AuthenticatedCoursesCourseIdRoute
   '/learn/$lessonId': typeof AuthenticatedLearnLessonIdRoute
   '/api/ai/health': typeof ApiAiHealthRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/$': typeof ApiSplatRoute
   '/courses/$courseId': typeof AuthenticatedCoursesCourseIdRoute
   '/learn/$lessonId': typeof AuthenticatedLearnLessonIdRoute
   '/api/ai/health': typeof ApiAiHealthRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/api/$': typeof ApiSplatRoute
   '/_authenticated/courses_/$courseId': typeof AuthenticatedCoursesCourseIdRoute
   '/_authenticated/learn/$lessonId': typeof AuthenticatedLearnLessonIdRoute
   '/api/ai/health': typeof ApiAiHealthRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/library'
     | '/onboarding'
+    | '/api/$'
     | '/courses/$courseId'
     | '/learn/$lessonId'
     | '/api/ai/health'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/library'
     | '/onboarding'
+    | '/api/$'
     | '/courses/$courseId'
     | '/learn/$lessonId'
     | '/api/ai/health'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
     | '/_authenticated/onboarding'
+    | '/api/$'
     | '/_authenticated/courses_/$courseId'
     | '/_authenticated/learn/$lessonId'
     | '/api/ai/health'
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  ApiSplatRoute: typeof ApiSplatRoute
   ApiAiHealthRoute: typeof ApiAiHealthRoute
   ApiResourcesUploadRoute: typeof ApiResourcesUploadRoute
   ApiVideosUploadRoute: typeof ApiVideosUploadRoute
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/courses_/$courseId': {
       id: '/_authenticated/courses_/$courseId'
       path: '/courses/$courseId'
@@ -354,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  ApiSplatRoute: ApiSplatRoute,
   ApiAiHealthRoute: ApiAiHealthRoute,
   ApiResourcesUploadRoute: ApiResourcesUploadRoute,
   ApiVideosUploadRoute: ApiVideosUploadRoute,

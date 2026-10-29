@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { WorkspaceHeader } from "./workspace-header";
 import { catalogQuery, progressQuery } from "@/lib/learning-queries";
 import { courseCompletion, formatPosition } from "@/lib/learning";
-import cover from "@/assets/embeddings.jpg.asset.json";
+import cover from "@/assets/hero-graph.jpg";
 
 export function CourseCatalog({ userId, library = false }: { userId: string; library?: boolean }) {
   const { data: catalog } = useSuspenseQuery(catalogQuery);
@@ -75,8 +75,8 @@ export function CourseCatalog({ userId, library = false }: { userId: string; lib
                 <article className="overflow-hidden rounded-lg border bg-paper" key={c.id}>
                   <Link to="/courses/$courseId" params={{ courseId: c.id }}>
                     <img
-                      src={cover.url}
-                      alt="Original lesson: what is an embedding?"
+                      src={cover}
+                      alt="Horizon 2.0 course illustration"
                       className="aspect-video w-full object-cover"
                     />
                   </Link>

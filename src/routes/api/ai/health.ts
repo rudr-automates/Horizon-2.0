@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getAiProviderStatus } from "@/server/ai/runtime.server";
+import { unsupportedMethods } from "@/server/http/responses";
 
 /**
  * Non-secret readiness probe. It reports whether server-side credentials were
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/api/ai/health")({
           },
         );
       },
+      ...unsupportedMethods(["GET"]),
     },
   },
 });
