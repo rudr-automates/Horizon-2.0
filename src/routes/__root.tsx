@@ -16,6 +16,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { queryCacheAction } from "@/lib/session-policy";
 
+// Bump this when scripts/generate-favicon.mjs rewrites the icon files. Browsers
+// keep a favicon for a page URL for a long time, so replacing the file behind an
+// unchanged URL is not enough to clear an old editor icon out of a tab.
+const ICON_VERSION = "2";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -94,9 +99,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap",
       },
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
-      { rel: "icon", href: "/favicon.ico", sizes: "any", type: "image/x-icon" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", href: `/favicon.svg?v=${ICON_VERSION}`, type: "image/svg+xml" },
+      { rel: "icon", href: `/favicon.ico?v=${ICON_VERSION}`, sizes: "any", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: `/apple-touch-icon.png?v=${ICON_VERSION}` },
     ],
   }),
   shellComponent: RootShell,
