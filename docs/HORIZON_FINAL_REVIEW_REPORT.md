@@ -53,6 +53,7 @@ the video URL as indexed content. Automatic transcription remains unimplemented.
 | Production homepage                 | `https://horizonreboot.vercel.app/` returned HTTP 200 and Horizon 2.0 HTML.                                                                                     |
 | Production icon assets              | Versioned `/favicon.svg?v=2` returned HTTP 200 with `image/svg+xml` and the Horizon mark; `/favicon.ico?v=2` returned HTTP 200 with `image/vnd.microsoft.icon`. |
 | Production deployment               | Vercel reports READY deployment `dpl_oMwJU1WCE7BmBuNdHHhSkZ4yjzyh` on `main`, commit `ea7350cc829c92f4625004761fc60d895f357c33`.                                |
+| Review deployment                   | READY preview `dpl_DXgsFwhvEy8feEzqbxPRELXJ44ni` for the review commit; its homepage and versioned Horizon SVG returned HTTP 200.                               |
 | Supabase security advisor           | No security finding was returned except a warning that leaked-password protection is disabled. No database changes were made.                                   |
 
 The HTTP icon responses and page declarations were verified. A visible browser
@@ -72,7 +73,7 @@ not fresh results for this branch.
 - Review Supabase Auth's disabled leaked-password protection setting. The
   performance advisor also reports missing foreign-key indexes and RLS policy
   optimization opportunities; no schema or Auth settings were changed here.
-- No preview deployment was created and production was not redeployed.
+- The review branch has a READY preview deployment. Production was not redeployed.
 - No account, user row, or existing production data was deleted or modified.
 
 ## Git state
