@@ -93,12 +93,33 @@ function validLocator(scope: EvidenceScope, chunk: EvidenceChunk): boolean {
     );
   }
   if (locator.kind === "page") {
-    return Number.isInteger(locator.pageNumber) && locator.pageNumber > 0;
+    if (!(Number.isInteger(locator.pageNumber) && locator.pageNumber > 0)) return false;
+    return validAlignment(scope, chunk);
   }
   if (locator.kind === "slide") {
-    return Number.isInteger(locator.slideNumber) && locator.slideNumber > 0;
+    if (!(Number.isInteger(locator.slideNumber) && locator.slideNumber > 0)) return false;
+    return validAlignment(scope, chunk);
   }
-  return true;
+  return validAlignment(scope, chunk);
+}
+
+function availabilityOf(chunk: EvidenceChunk): "always" | "timeline" | "unknown" {
+  if (chunk.locator.kind === "video") return "timeline";
+  return chunk.availability ?? "unknown";
+}
+
+function validAlignment(scope: EvidenceScope, chunk: EvidenceChunk): boolean {
+  const policy = availabilityOf(chunk);
+  if (policy === "always" || policy === "unknown") return true;
+  return (
+    policy === "timeline" &&
+    Number.isFinite(chunk.alignmentStartSeconds) &&
+    Number.isFinite(chunk.alignmentEndSeconds) &&
+    (chunk.alignmentStartSeconds ?? -1) >= 0 &&
+    (chunk.alignmentEndSeconds ?? 0) > (chunk.alignmentStartSeconds ?? 0) &&
+    (chunk.alignmentEndSeconds ?? Infinity) <= scope.lessonDurationSeconds + POSITION_EPSILON &&
+    chunk.lessonId === scope.lessonId
+  );
 }
 
 /**
@@ -137,8 +158,17 @@ export function isAuthorizedEvidence(scope: EvidenceScope, chunk: EvidenceChunk)
 
 /** Video evidence is eligible only once the learner has passed its end time. */
 export function isEligibleAtPosition(scope: EvidenceScope, chunk: EvidenceChunk): boolean {
-  if (chunk.locator.kind !== "video") return true;
-  return chunk.locator.endSeconds <= scope.positionSeconds + POSITION_EPSILON;
+  if (chunk.locator.kind === "video") {
+    return chunk.locator.endSeconds <= scope.positionSeconds + POSITION_EPSILON;
+  }
+  const availability = availabilityOf(chunk);
+  if (availability === "always") return true;
+  if (availability === "unknown") return scope.allowUnknownReferences === true;
+  return (
+    availability === "timeline" &&
+    Number.isFinite(chunk.alignmentEndSeconds) &&
+    (chunk.alignmentEndSeconds ?? Infinity) <= scope.positionSeconds + POSITION_EPSILON
+  );
 }
 
 export function isEligibleEvidence(scope: EvidenceScope, chunk: EvidenceChunk): boolean {
@@ -167,6 +197,7 @@ function toModelEvidence(chunk: EvidenceChunk): GroundedEvidence {
     text: chunk.text,
     resourceKind: chunk.resourceKind,
     locator: chunk.locator,
+    availability: availabilityOf(chunk),
     ...(chunk.provenance === undefined ? {} : { provenance: chunk.provenance }),
   };
 }

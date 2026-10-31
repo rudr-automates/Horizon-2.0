@@ -318,6 +318,11 @@ export function LessonTutor({
                       <span className="truncate">
                         {citation.title ?? citation.resourceKind.replaceAll("_", " ")} ·{" "}
                         {locatorText(citation)}
+                        {citation.availability === "unknown"
+                          ? " · reference (alignment unknown)"
+                          : citation.availability === "always"
+                            ? " · always-available reference"
+                            : ""}
                       </span>
                       {citation.sourceUrl && <ExternalLink className="size-3 shrink-0" />}
                     </button>

@@ -79,6 +79,9 @@ export function LessonResources({
   const [resources, setResources] = useState<ResourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [availability, setAvailability] = useState<"unknown" | "always" | "timeline">("unknown");
+  const [alignmentStart, setAlignmentStart] = useState("0");
+  const [alignmentEnd, setAlignmentEnd] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -176,6 +179,9 @@ export function LessonResources({
           lessonId,
           filename: file.name,
           size: file.size,
+          availability,
+          alignmentStartSeconds: availability === "timeline" ? Number(alignmentStart) : undefined,
+          alignmentEndSeconds: availability === "timeline" ? Number(alignmentEnd) : undefined,
         }),
       });
       const signed = (await signResponse.json().catch(() => null)) as SignedUpload | null;
@@ -207,6 +213,9 @@ export function LessonResources({
           lessonId,
           filename: file.name,
           path: signed.path,
+          availability,
+          alignmentStartSeconds: availability === "timeline" ? Number(alignmentStart) : undefined,
+          alignmentEndSeconds: availability === "timeline" ? Number(alignmentEnd) : undefined,
         }),
       });
       const payload = (await response.json().catch(() => null)) as {
@@ -246,6 +255,47 @@ export function LessonResources({
               PDF, PPTX, Markdown, text, code or SRT/WebVTT captions. Text is extracted, chunked and
               embedded; scans need OCR first.
             </p>
+            <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              Resource availability
+              <select
+                className="rounded border bg-background px-2 py-1 text-foreground"
+                value={availability}
+                onChange={(event) => setAvailability(event.target.value as typeof availability)}
+              >
+                <option value="unknown">Unknown alignment (reference only when asked)</option>
+                <option value="always">Always available reference material</option>
+                <option value="timeline">Aligned to a lesson time range</option>
+              </select>
+            </label>
+            {availability === "timeline" && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <label>
+                  Start seconds{" "}
+                  <Input
+                    className="inline-flex h-8 w-24"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={alignmentStart}
+                    onChange={(event) => setAlignmentStart(event.target.value)}
+                  />
+                </label>
+                <label>
+                  End seconds{" "}
+                  <Input
+                    className="inline-flex h-8 w-24"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={alignmentEnd}
+                    onChange={(event) => setAlignmentEnd(event.target.value)}
+                  />
+                </label>
+                <span className="text-muted-foreground">
+                  Available only after the learner reaches the end time.
+                </span>
+              </div>
+            )}
           </div>
           <Button
             type="button"

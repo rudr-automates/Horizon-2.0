@@ -171,7 +171,10 @@ export function ImportVideo({ userId }: { userId: string }) {
           <DialogDescription>
             Paste a YouTube, Vimeo or public MP4/WebM link, or upload an MP4/WebM file from this
             computer. Uploaded files stay in private storage only you can read. Playback depends on
-            the source's embedding permissions. Captions are added inside the lesson.
+            the source's embedding permissions. Adding a playable video does not create a
+            transcript; automatic transcription is not available for arbitrary links here. Add an
+            SRT/WebVTT caption track in the lesson's Transcript tab before asking questions about
+            the video.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-2" role="tablist" aria-label="Import method">

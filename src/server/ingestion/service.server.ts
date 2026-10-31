@@ -190,6 +190,9 @@ export async function ingestLessonResource(input: {
    * is present the bytes are only read for extraction; nothing is re-uploaded.
    */
   storedPath?: string;
+  availability?: "always" | "timeline" | "unknown";
+  alignmentStartSeconds?: number;
+  alignmentEndSeconds?: number;
 }): Promise<IngestResult> {
   if (!input.userId.trim()) return failure("database_unavailable", "No authenticated learner.");
   if (input.bytes.byteLength > MAX_RESOURCE_BYTES) {
@@ -204,6 +207,18 @@ export async function ingestLessonResource(input: {
   if (lessonError) return failure("database_unavailable", "The lesson could not be loaded.");
   if (!lesson)
     return failure("lesson_not_found", "That lesson is unavailable or you do not have access.");
+
+  const availability = input.availability ?? "unknown";
+  if (
+    availability === "timeline" &&
+    (!Number.isFinite(input.alignmentStartSeconds) ||
+      !Number.isFinite(input.alignmentEndSeconds) ||
+      (input.alignmentStartSeconds ?? -1) < 0 ||
+      (input.alignmentEndSeconds ?? 0) <= (input.alignmentStartSeconds ?? 0) ||
+      (input.alignmentEndSeconds ?? Infinity) > lesson.duration_seconds)
+  ) {
+    return failure("invalid_file", "Timeline alignment must be a valid range within this lesson.");
+  }
 
   let extracted;
   try {
@@ -296,6 +311,13 @@ export async function ingestLessonResource(input: {
     content_hash: contentHash,
     metadata: {
       ...extracted.metadata,
+      availability_policy: extracted.kind === "video_transcript" ? "timeline" : availability,
+      ...(availability === "timeline"
+        ? {
+            alignment_start_seconds: input.alignmentStartSeconds,
+            alignment_end_seconds: input.alignmentEndSeconds,
+          }
+        : {}),
       storage_bucket: RESOURCE_BUCKET,
       storage_path: storagePath,
       embedding_status: embeddingStatus,
@@ -339,6 +361,13 @@ export async function ingestLessonResource(input: {
       status: "ready",
       metadata: {
         ...extracted.metadata,
+        availability_policy: extracted.kind === "video_transcript" ? "timeline" : availability,
+        ...(availability === "timeline"
+          ? {
+              alignment_start_seconds: input.alignmentStartSeconds,
+              alignment_end_seconds: input.alignmentEndSeconds,
+            }
+          : {}),
         storage_bucket: RESOURCE_BUCKET,
         storage_path: storagePath,
         embedding_status: embeddingStatus,
