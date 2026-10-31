@@ -106,6 +106,13 @@ URL `https://horizonreboot-j0xpkalyn-irrelevant3.vercel.app/`, for commit
 Deployment Protection required a temporary preview access link for the
 isolated in-app browser; production protection/settings were not changed.
 
+The report-only commit `8380ea700da84afc478c8f972e4aa40dc14043cb` also
+deployed as READY `dpl_AjSdx1Sk8v7bULwcNN76khJofXjt` at
+`https://horizonreboot-jgk1jrr08-irrelevant3.vercel.app/`. I opened that latest
+deployment after it became READY. It serves the same app source as `decbb7c`;
+the landing page title, icon declarations, clean console, and icon asset
+responses were rechecked on it.
+
 The browser document title was `Horizon 2.0 — Learning that understands your
 context`; the landing page and branded Horizon mark rendered. The page declares
 versioned `/favicon.svg?v=2`, `/favicon.ico?v=2`, and
@@ -125,8 +132,11 @@ page rendered; authenticated tutor/upload actions and API flows were not run.
 
 ## Deployment and remaining limitations
 
-The source change is pushed to the review branch and the preview is READY.
-Production and `main` remain untouched.
+Application changes are in commit `decbb7cdfd39cc7e47099642cb3bbaed863850d9`;
+report changes are in `8380ea700da84afc478c8f972e4aa40dc14043cb`. Both are
+pushed to `codex/horizon-final-rebuild` under the existing repository identity.
+The latest report commit preview is READY. Production and `main` remain
+untouched.
 
 Remaining limitations: automatic YouTube/MP4 transcription; retryable
 transcription worker and expanded 10-state progress reporting; live end-to-end
