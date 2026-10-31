@@ -84,9 +84,14 @@ per day. It is not a distributed quota service.
 | Different provider/model/dimension/version | `keyword`  | `space_mismatch`           |
 | Ready index with identical space           | `semantic` | `compatible_index`         |
 
-`semantic` is an extension point: no semantic index exists yet, so the current
-pipeline is keyword-only. A degraded or missing index can always fall back to
-keyword retrieval rather than failing the question.
+The live lesson path uses the Jina query vector with compatible stored chunk
+vectors when available. Missing vectors for the small authorized lesson set
+are embedded at request time within a bounded limit and cached per server
+instance. Keyword and vector rankings are merged with reciprocal rank fusion;
+if embedding is unavailable or incompatible, the request falls back to keyword
+retrieval. The HNSW and GIN indexes are provisioned, but this path currently
+loads the authorized lesson subset and ranks it in memory rather than querying
+those indexes through a database RPC.
 
 ## Resource and chunk model
 
