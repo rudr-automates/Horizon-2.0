@@ -24,6 +24,7 @@ import { Route as AuthenticatedCoursesCourseIdRouteImport } from './routes/_auth
 import { Route as AuthenticatedLearnLessonIdRouteImport } from './routes/_authenticated/learn.$lessonId'
 import { Route as ApiAiHealthRouteImport } from './routes/api/ai/health'
 import { Route as ApiResourcesUploadRouteImport } from './routes/api/resources/upload'
+import { Route as ApiVideosProcessRouteImport } from './routes/api/videos/process'
 import { Route as ApiVideosUploadRouteImport } from './routes/api/videos/upload'
 import { Route as ApiWhisperJobsRouteImport } from './routes/api/whisper/jobs'
 import { Route as ApiWhisperWorkerClaimRouteImport } from './routes/api/whisper/worker/claim'
@@ -106,6 +107,11 @@ const ApiResourcesUploadRoute = ApiResourcesUploadRouteImport.update({
   path: '/api/resources/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVideosProcessRoute = ApiVideosProcessRouteImport.update({
+  id: '/api/videos/process',
+  path: '/api/videos/process',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVideosUploadRoute = ApiVideosUploadRouteImport.update({
   id: '/api/videos/upload',
   path: '/api/videos/upload',
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/learn/$lessonId': typeof AuthenticatedLearnLessonIdRoute
   '/api/ai/health': typeof ApiAiHealthRoute
   '/api/resources/upload': typeof ApiResourcesUploadRoute
+  '/api/videos/process': typeof ApiVideosProcessRoute
   '/api/videos/upload': typeof ApiVideosUploadRoute
   '/api/whisper/jobs': typeof ApiWhisperJobsRoute
   '/api/whisper/worker/claim': typeof ApiWhisperWorkerClaimRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/learn/$lessonId': typeof AuthenticatedLearnLessonIdRoute
   '/api/ai/health': typeof ApiAiHealthRoute
   '/api/resources/upload': typeof ApiResourcesUploadRoute
+  '/api/videos/process': typeof ApiVideosProcessRoute
   '/api/videos/upload': typeof ApiVideosUploadRoute
   '/api/whisper/jobs': typeof ApiWhisperJobsRoute
   '/api/whisper/worker/claim': typeof ApiWhisperWorkerClaimRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_authenticated/learn/$lessonId': typeof AuthenticatedLearnLessonIdRoute
   '/api/ai/health': typeof ApiAiHealthRoute
   '/api/resources/upload': typeof ApiResourcesUploadRoute
+  '/api/videos/process': typeof ApiVideosProcessRoute
   '/api/videos/upload': typeof ApiVideosUploadRoute
   '/api/whisper/jobs': typeof ApiWhisperJobsRoute
   '/api/whisper/worker/claim': typeof ApiWhisperWorkerClaimRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/learn/$lessonId'
     | '/api/ai/health'
     | '/api/resources/upload'
+    | '/api/videos/process'
     | '/api/videos/upload'
     | '/api/whisper/jobs'
     | '/api/whisper/worker/claim'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/learn/$lessonId'
     | '/api/ai/health'
     | '/api/resources/upload'
+    | '/api/videos/process'
     | '/api/videos/upload'
     | '/api/whisper/jobs'
     | '/api/whisper/worker/claim'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/_authenticated/learn/$lessonId'
     | '/api/ai/health'
     | '/api/resources/upload'
+    | '/api/videos/process'
     | '/api/videos/upload'
     | '/api/whisper/jobs'
     | '/api/whisper/worker/claim'
@@ -276,6 +288,7 @@ export interface RootRouteChildren {
   ApiSplatRoute: typeof ApiSplatRoute
   ApiAiHealthRoute: typeof ApiAiHealthRoute
   ApiResourcesUploadRoute: typeof ApiResourcesUploadRoute
+  ApiVideosProcessRoute: typeof ApiVideosProcessRoute
   ApiVideosUploadRoute: typeof ApiVideosUploadRoute
   ApiWhisperJobsRoute: typeof ApiWhisperJobsRoute
   ApiWhisperWorkerClaimRoute: typeof ApiWhisperWorkerClaimRoute
@@ -390,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiResourcesUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/videos/process': {
+      id: '/api/videos/process'
+      path: '/api/videos/process'
+      fullPath: '/api/videos/process'
+      preLoaderRoute: typeof ApiVideosProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/videos/upload': {
       id: '/api/videos/upload'
       path: '/api/videos/upload'
@@ -459,6 +479,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSplatRoute: ApiSplatRoute,
   ApiAiHealthRoute: ApiAiHealthRoute,
   ApiResourcesUploadRoute: ApiResourcesUploadRoute,
+  ApiVideosProcessRoute: ApiVideosProcessRoute,
   ApiVideosUploadRoute: ApiVideosUploadRoute,
   ApiWhisperJobsRoute: ApiWhisperJobsRoute,
   ApiWhisperWorkerClaimRoute: ApiWhisperWorkerClaimRoute,

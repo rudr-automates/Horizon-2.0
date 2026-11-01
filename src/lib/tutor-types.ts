@@ -38,6 +38,7 @@ export type TutorErrorCode =
   | "invalid_scope"
   | "citation_invalid"
   | "retrieval_unavailable"
+  | "processing"
   | "unknown";
 
 export interface TutorSuccess {
@@ -72,4 +73,15 @@ export interface TutorFailure {
   correlationId?: string;
 }
 
-export type TutorResponse = TutorSuccess | TutorRefusal | TutorFailure;
+/**
+ * The lesson itself has no indexed transcript yet. This is not an evidence
+ * refusal: the video is still being processed (or needs captions/upload), and
+ * the learner must be told that instead of being asked to play further.
+ */
+export interface TutorProcessing {
+  status: "processing";
+  message: string;
+  stage?: string;
+}
+
+export type TutorResponse = TutorSuccess | TutorRefusal | TutorFailure | TutorProcessing;

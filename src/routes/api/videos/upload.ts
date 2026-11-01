@@ -216,8 +216,8 @@ export const Route = createFileRoute("/api/videos/upload")({
               lessonId: write.data.id,
               videoUrl,
               message: rawLessonId
-                ? "Video replaced. Its duration will be recorded when it first plays."
-                : "Video added. Add captions in the Transcript tab before asking timestamped questions.",
+                ? "Video replaced. Horizon is preparing its transcript automatically."
+                : "Video added. Horizon is preparing its transcript automatically.",
             },
             { status: 201, headers: { "cache-control": "no-store" } },
           );

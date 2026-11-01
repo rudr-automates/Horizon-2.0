@@ -19,16 +19,18 @@ npm ci
 cp .env.example .env
 ```
 
-| Variable                                              | Scope            | Purpose                                             |
-| ----------------------------------------------------- | ---------------- | --------------------------------------------------- |
-| `SUPABASE_URL`                                        | Browser + server | Project URL.                                        |
-| `SUPABASE_PUBLISHABLE_KEY`                            | Browser + server | Publishable key; RLS is the boundary.               |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser          | Build-time copies for the client.                   |
-| `SUPABASE_PROJECT_ID` / `VITE_SUPABASE_PROJECT_ID`    | Browser + server | Optional tooling identifier.                        |
-| `GEMINI_API_KEY`                                      | Server only      | Primary free-tier language model.                   |
-| `GROQ_API_KEY`                                        | Server only      | Free-tier fallback language model.                  |
-| `JINA_API_KEY`                                        | Server only      | Embeddings and reranking.                           |
-| `AI_MODEL_PREFERENCES`                                | Server only      | Optional JSON override of the free model allowlist. |
+| Variable                                              | Scope            | Purpose                                                        |
+| ----------------------------------------------------- | ---------------- | -------------------------------------------------------------- |
+| `SUPABASE_URL`                                        | Browser + server | Project URL.                                                   |
+| `SUPABASE_PUBLISHABLE_KEY`                            | Browser + server | Publishable key; RLS is the boundary.                          |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Browser          | Build-time copies for the client.                              |
+| `SUPABASE_PROJECT_ID` / `VITE_SUPABASE_PROJECT_ID`    | Browser + server | Optional tooling identifier.                                   |
+| `GEMINI_API_KEY`                                      | Server only      | Primary free-tier language model.                              |
+| `GROQ_API_KEY`                                        | Server only      | Free-tier fallback language model.                             |
+| `JINA_API_KEY`                                        | Server only      | Embeddings and reranking.                                      |
+| `AI_MODEL_PREFERENCES`                                | Server only      | Optional JSON override of the free model allowlist.            |
+| `VIDEO_TRANSCRIPTION_MODEL`                           | Server only      | Optional timestamped-transcription model override.             |
+| `SUPABASE_SERVICE_ROLE_KEY` / `WHISPER_WORKER_TOKEN`  | Server only      | Optional local Whisper queue; not used by automatic ingestion. |
 
 Never give a server key a `VITE_` prefix. The development server was verified to
 load the root `.env`: `GET /api/ai/health` reports provider names and
@@ -48,6 +50,11 @@ including:
   tutor history and quiz attempts.
 - `20261026130000_resource_file_storage.sql` — private `learning-resources`
   bucket and owner-folder policies.
+- `20261031235217_whisper_transcription_jobs.sql` — optional desktop Whisper
+  queue.
+- `20261101120000_video_ingestion_jobs.sql` — durable automatic video ingestion
+  jobs with owner-only RLS. See
+  [universal video ingestion](VIDEO_INGESTION_PIPELINE.md).
 
 The MIT 15.773 course is seeded with 11 lecture transcripts, 14 note PDFs and a
 syllabus. To rebuild it after changing the embedder or source files:
@@ -100,6 +107,16 @@ RUN_LIVE_WORKFLOW=1 node --env-file=.env --env-file=.env.e2e \
 confirmed learner. The live workflow answers a question against the seeded MIT
 lecture, generates and grades a quiz, uploads a private note, verifies its
 signed citation, and deletes the temporary resource.
+
+## Video uploads
+
+Uploading an MP4/WebM (or importing a direct MP4/WebM link) starts automatic
+processing as soon as the lesson opens: the media is uploaded to the Gemini
+Files API, transcribed into timestamped passages, chunked and embedded. The
+Transcript tab shows the current stage and any error, and the tutor, Explain
+simply, Summarize so far and quizzes use the indexed evidence. No extra setup is
+needed beyond `GEMINI_API_KEY`; see
+[universal video ingestion](VIDEO_INGESTION_PIPELINE.md).
 
 ## Resource uploads
 

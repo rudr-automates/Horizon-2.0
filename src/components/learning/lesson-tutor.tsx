@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatPosition } from "@/lib/learning";
+import type { IngestionStatus } from "@/lib/ingestion-types";
 import type { TutorCitation, TutorMode, TutorRequest, TutorResponse } from "@/lib/tutor-types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,10 +75,13 @@ export function LessonTutor({
   lessonId,
   position,
   onSeek,
+  ingestion,
 }: {
   lessonId: string;
   position: number;
   onSeek: (time: number) => void;
+  /** Automatic processing state for this video, when it is learner-owned. */
+  ingestion?: IngestionStatus | null;
 }) {
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -212,6 +216,15 @@ export function LessonTutor({
             : "Checking AI setup…"}
         </span>
       </div>
+
+      {ingestion && ingestion.state !== "ready" && (
+        <p className="mt-3 flex items-start gap-2 rounded-md border bg-muted/40 p-2.5 text-xs">
+          <Loader2 className="mt-0.5 size-3.5 shrink-0" />
+          {ingestion.state === "processing" || ingestion.state === "queued"
+            ? `${ingestion.message} You can still ask; the tutor will report this state instead of guessing.`
+            : ingestion.message}
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button
@@ -387,6 +400,18 @@ export function LessonTutor({
                   )}
                 </div>
               </>
+            ) : turn.response.status === "processing" ? (
+              <p className="mt-2 flex items-start gap-2 rounded-md border border-primary/30 bg-accent/40 p-3 text-sm">
+                <Loader2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  {turn.response.message}
+                  {turn.response.stage && (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Current stage: {turn.response.stage}
+                    </span>
+                  )}
+                </span>
+              </p>
             ) : turn.response.status === "insufficient_evidence" ? (
               <p className="mt-2 flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-700" />

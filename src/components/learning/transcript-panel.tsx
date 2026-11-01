@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Captions, RotateCcw } from "lucide-react";
+import { Search, Captions, RotateCcw, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import type { IngestionStatus } from "@/lib/ingestion-types";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Lesson } from "@/lib/learning-queries";
@@ -15,11 +16,21 @@ export function TranscriptPanel({
   lesson,
   position,
   onSeek,
+  ingestion,
+  ingestionError,
+  ingestionBusy,
+  onRetryIngestion,
 }: {
   lesson: Lesson;
   position: number;
   onSeek: (n: number) => void;
+  ingestion?: IngestionStatus | null;
+  ingestionError?: string | null;
+  ingestionBusy?: boolean;
+  onRetryIngestion?: () => void;
 }) {
+  const processing = ingestion?.state === "queued" || ingestion?.state === "processing";
+  const blocked = ingestion?.state === "needs_captions" || ingestion?.state === "failed";
   const [search, setSearch] = useState(""),
     [captionText, setCaptionText] = useState(""),
     [busy, setBusy] = useState(false),
@@ -146,6 +157,53 @@ export function TranscriptPanel({
   }
   return (
     <div>
+      {!lesson.is_demo && (processing || blocked || ingestion?.state === "none") && (
+        <div
+          className="mb-3 rounded-md border bg-muted/40 p-3 text-sm"
+          aria-live="polite"
+          role="status"
+        >
+          <p className="flex items-center gap-2 font-medium">
+            {processing ? (
+              <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+            ) : blocked ? (
+              <AlertTriangle className="size-4 shrink-0 text-amber-700" />
+            ) : (
+              <Sparkles className="size-4 shrink-0 text-primary" />
+            )}
+            {ingestion?.stage ?? "Automatic processing"}
+            {processing && ingestion?.percent !== undefined && (
+              <span className="text-xs text-muted-foreground">{ingestion.percent}%</span>
+            )}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{ingestion?.message}</p>
+          {processing && ingestion?.percent !== undefined && (
+            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${ingestion.percent}%` }}
+              />
+            </div>
+          )}
+          {blocked && onRetryIngestion && ingestion?.canRetry && (
+            <Button
+              className="mt-2"
+              size="sm"
+              variant="outline"
+              disabled={Boolean(ingestionBusy)}
+              onClick={onRetryIngestion}
+            >
+              <RotateCcw />
+              {ingestionBusy ? "Retrying…" : "Retry processing"}
+            </Button>
+          )}
+          {ingestionError && (
+            <p className="mt-2 text-xs text-destructive" role="alert">
+              {ingestionError}
+            </p>
+          )}
+        </div>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
         <Input
@@ -156,28 +214,30 @@ export function TranscriptPanel({
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      {!lesson.is_demo && lesson.video_url.startsWith("storage://lesson-videos/") && (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
-          <div>
-            <p className="font-medium">Local Whisper transcription</p>
-            <p className="text-xs text-muted-foreground">
-              {job
-                ? `${job.status === "retry_wait" ? "Waiting to retry" : job.status}${job.progress?.stage ? ` · ${job.progress.stage}` : ""}${job.error_message ? ` · ${job.error_message}` : ""}${workerOnline === false ? " · PC worker offline; queued work waits for reconnect." : ""}`
-                : workerOnline === false
-                  ? "PC worker offline; queued jobs wait until it reconnects."
-                  : workerOnline
-                    ? "PC worker online. Queue this private upload for transcription."
-                    : "Checking your PC worker status…"}
-            </p>
+      {!lesson.is_demo &&
+        lesson.video_url.startsWith("storage://lesson-videos/") &&
+        (job !== null || workerOnline === true) && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+            <div>
+              <p className="font-medium">Local Whisper transcription (optional)</p>
+              <p className="text-xs text-muted-foreground">
+                {job
+                  ? `${job.status === "retry_wait" ? "Waiting to retry" : job.status}${job.progress?.stage ? ` · ${job.progress.stage}` : ""}${job.error_message ? ` · ${job.error_message}` : ""}${workerOnline === false ? " · PC worker offline; queued work waits for reconnect." : ""}`
+                  : workerOnline === false
+                    ? "PC worker offline; queued jobs wait until it reconnects."
+                    : workerOnline
+                      ? "PC worker online. Queue this private upload for transcription."
+                      : "Checking your PC worker status…"}
+              </p>
+            </div>
+            {(!job || job.status === "failed") && (
+              <Button size="sm" variant="outline" disabled={jobBusy} onClick={requestWhisper}>
+                <RotateCcw />
+                {jobBusy ? "Queueing…" : job ? "Retry" : "Transcribe"}
+              </Button>
+            )}
           </div>
-          {(!job || job.status === "failed") && (
-            <Button size="sm" variant="outline" disabled={jobBusy} onClick={requestWhisper}>
-              <RotateCcw />
-              {jobBusy ? "Queueing…" : job ? "Retry" : "Transcribe"}
-            </Button>
-          )}
-        </div>
-      )}
+        )}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
         <span>
           {segments.length} passages · {lesson.transcript_status}
@@ -226,7 +286,11 @@ export function TranscriptPanel({
         )}
       {!segments.length && (
         <p className="py-6 text-sm text-muted-foreground">
-          No captions have been added. Video playback does not automatically provide a transcript.
+          {processing
+            ? "The transcript is being generated. This panel updates automatically when it is ready."
+            : blocked
+              ? "No transcript is available yet. Use the processing panel above, upload timestamped captions below, or upload the video file itself."
+              : "No captions have been added yet."}
         </p>
       )}
       {!lesson.is_demo && (

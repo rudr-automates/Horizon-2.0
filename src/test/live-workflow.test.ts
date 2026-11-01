@@ -88,6 +88,34 @@ describe.skipIf(!configured)("live MIT lesson workflow", () => {
     expect(stored.data?.provider_id).toMatch(/gemini|groq/);
   }, 120_000);
 
+  it("explains and summarises the covered MIT material", async () => {
+    const { client, userId } = await learnerClient();
+    for (const mode of ["explain", "summary"] as const) {
+      const result = await answerLessonQuestion({
+        supabase: client,
+        userId,
+        lessonId: "mit-15-773-01",
+        positionSeconds: 2_800,
+        question:
+          mode === "explain"
+            ? "Explain the covered material around this point simply."
+            : "Summarize the key ideas covered so far.",
+        mode,
+      });
+      console.log(`[mit ${mode}] ${result.status}`);
+      expect(result.status).toBe("answered");
+      if (result.status !== "answered") continue;
+      expect(result.citations.length).toBeGreaterThan(0);
+      expect(
+        result.citations.every((citation) =>
+          citation.locator.kind === "video"
+            ? citation.locator.endSeconds <= 2_800
+            : Boolean(citation.sourceUrl),
+        ),
+      ).toBe(true);
+    }
+  }, 180_000);
+
   it("generates and grades a persisted practice check", async () => {
     const { client, userId } = await learnerClient();
     const quiz = await generateQuiz({

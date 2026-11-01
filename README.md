@@ -19,9 +19,19 @@ TypeScript, Tailwind CSS, Supabase and Vitest.
 - **Explain simply**, **Summarize so far**, follow-up questions, quick quizzes,
   exam drills, interview drills, persisted scores and helpful/not-helpful
   feedback are wired to the same grounded path.
+- **Any learner video** is ingested automatically: uploads and direct MP4/WebM
+  links are transcribed with timestamped passages, chunked and embedded through
+  the same pipeline as the seeded course, so all four AI features work at any
+  timestamp. Links to hosts with published captions use those captions. A
+  durable job exposes queued, processing, ready, needs-captions and failed
+  states instead of an evidence error. See
+  [universal video ingestion](docs/VIDEO_INGESTION_PIPELINE.md).
 - **Study materials** uploads PDF, PPTX, Markdown, text, code and SRT/WebVTT
   captions. Files are private per learner, text is extracted and chunked, and
   Jina vectors are stored in an explicitly versioned 1,024-dimensional space.
+- **Central pgvector RAG** indexes timestamped video passages with 768-d Gemini
+  embeddings in PostgreSQL and retrieves only the playback-covered chunks for
+  every AI feature. See [pgvector RAG](docs/PGVECTOR_RAG.md).
 - If credentials are missing, a provider fails or free quota is exhausted, the UI
   reports the category and never fabricates an answer. There is no paid fallback.
 
@@ -30,6 +40,8 @@ verification is opt-in; see [local setup](docs/LOCAL_SETUP.md).
 
 ## Documentation
 
+- [Universal video ingestion: root cause, pipeline and limits](docs/VIDEO_INGESTION_PIPELINE.md)
+- [Central PostgreSQL + pgvector RAG: schema, retrieval and limits](docs/PGVECTOR_RAG.md)
 - [Phase 2 completion report and verification results](docs/HORIZON_2_PHASE_2_REPORT.md)
 - [Local setup, migrations, uploads and Vercel build](docs/LOCAL_SETUP.md)
 - [AI provider gateway and free-tier policy](docs/AI_PROVIDER_ARCHITECTURE.md)

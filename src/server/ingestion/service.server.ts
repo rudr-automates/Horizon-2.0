@@ -6,7 +6,8 @@ import { JINA_EMBEDDING_MODEL } from "../ai/embeddings/jina";
 import { embeddingSpaceKey, embeddingSpaceFor } from "../ai/embeddings/space";
 import type { AiDatabase } from "../retrieval/ai-database";
 import type { ResourceKind } from "../retrieval/types";
-import { parseCaptions } from "@/lib/learning";
+import { parseCaptions, type TranscriptSegment } from "@/lib/learning";
+import { indexLessonVideo } from "../rag/service.server";
 import {
   extractResource,
   ExtractionError,
@@ -388,10 +389,9 @@ export async function ingestLessonResource(input: {
   // beside the player, so keep the lesson row in step. Retrieval already works
   // at this point, so a failure here is reported rather than undoing the upload.
   if (extracted.kind === "video_transcript") {
+    let segments: TranscriptSegment[] = [];
     try {
-      const segments = parseCaptions(
-        new TextDecoder("utf-8", { fatal: false }).decode(input.bytes),
-      );
+      segments = parseCaptions(new TextDecoder("utf-8", { fatal: false }).decode(input.bytes));
       const synced = await input.supabase
         .from("lessons")
         .update({ transcript: segments, transcript_status: "available" })
@@ -407,6 +407,31 @@ export async function ingestLessonResource(input: {
         lessonId: lesson.id,
         reason: error instanceof Error ? error.message : "unknown",
       });
+    }
+
+    // Build the central pgvector index. The legacy resource chunks above stay
+    // in place as a fallback, so an embedding outage does not remove the
+    // transcript or make the lesson unplayable.
+    if (segments.length) {
+      const indexed = await indexLessonVideo({
+        supabase: input.supabase,
+        lesson: {
+          id: lesson.id,
+          title: lesson.title,
+          user_id: input.userId,
+          course_id: lesson.course_id,
+          is_demo: false,
+          duration_seconds: lesson.duration_seconds,
+          transcript: segments,
+        },
+        segments,
+      });
+      if (indexed.status !== "ready") {
+        console.warn("[ingestion] vector index not ready", {
+          lessonId: lesson.id,
+          reason: indexed.error ?? "unknown",
+        });
+      }
     }
   }
 

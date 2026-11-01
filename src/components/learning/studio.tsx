@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { lessonQuery, catalogQuery, progressQuery } from "@/lib/learning-queries";
 import { formatPosition, courseCompletion } from "@/lib/learning";
 import { supabase } from "@/integrations/supabase/client";
+import { useVideoIngestion } from "@/hooks/use-video-ingestion";
 import { WorkspaceHeader } from "./workspace-header";
 import { TranscriptPanel } from "./transcript-panel";
 import { Annotations } from "./annotations";
@@ -68,6 +69,17 @@ export function Studio({ lessonId, userId }: { lessonId: string; userId: string 
     },
     [lesson.duration_seconds, lessonId, qc],
   );
+  // Every lesson without an indexed transcript is processed automatically, so
+  // the tutor, simplifier, summariser and practice quiz work on any video, not
+  // only the seeded course. Demo lessons are already indexed and are skipped.
+  const ingestion = useVideoIngestion({
+    lessonId,
+    enabled: !lesson.is_demo,
+    onReady: () => {
+      void qc.invalidateQueries({ queryKey: ["learning", "lesson", lessonId] });
+      void qc.invalidateQueries({ queryKey: ["learning", "catalog"] });
+    },
+  });
   const lessons = lesson.course_id
     ? catalog.lessons.filter((l) => l.course_id === lesson.course_id)
     : [lesson];
@@ -209,7 +221,12 @@ export function Studio({ lessonId, userId }: { lessonId: string; userId: string 
             </div>
             <p className="mt-5 text-sm leading-6 text-muted-foreground">{lesson.description}</p>
             <div className="mt-7">
-              <LessonTutor lessonId={lessonId} position={position} onSeek={jump} />
+              <LessonTutor
+                lessonId={lessonId}
+                position={position}
+                onSeek={jump}
+                ingestion={ingestion.status}
+              />
             </div>
             <div className="mt-7">
               <div className="flex items-center justify-between">
@@ -278,7 +295,15 @@ export function Studio({ lessonId, userId }: { lessonId: string; userId: string 
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="transcript" className="mt-5">
-                <TranscriptPanel lesson={lesson} position={position} onSeek={jump} />
+                <TranscriptPanel
+                  lesson={lesson}
+                  position={position}
+                  onSeek={jump}
+                  ingestion={ingestion.status}
+                  ingestionError={ingestion.error}
+                  ingestionBusy={ingestion.busy}
+                  onRetryIngestion={() => void ingestion.retry()}
+                />
               </TabsContent>
               <TabsContent value="notes" className="mt-5">
                 <Annotations

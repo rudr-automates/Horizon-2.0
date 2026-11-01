@@ -87,3 +87,6 @@ supabase/.temp/
 .env*
 !.env.example
 /.local-backups/
+
+# Local server secrets (never commit)
+env

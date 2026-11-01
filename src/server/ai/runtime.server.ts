@@ -1,6 +1,7 @@
 import { loadGatewayConfig, validateGatewayConfig } from "./config";
 import { credentialStatus } from "./credentials";
 import { EmbeddingService } from "./embeddings/service";
+import { GeminiEmbeddingProvider } from "./embeddings/gemini";
 import { JinaEmbeddingProvider, JINA_EMBEDDING_MODEL } from "./embeddings/jina";
 import { EmbeddingUsageGuard } from "./embeddings/quota";
 import { EmbeddingProviderRegistry } from "./embeddings/registry";
@@ -101,9 +102,9 @@ export function getAiRuntime(env: Record<string, string | undefined> = process.e
     logger: createAiLogger(),
   });
 
-  const embeddingRegistry = new EmbeddingProviderRegistry().register(
-    new JinaEmbeddingProvider(env),
-  );
+  const embeddingRegistry = new EmbeddingProviderRegistry()
+    .register(new JinaEmbeddingProvider(env))
+    .register(new GeminiEmbeddingProvider(env));
   const embeddings = new EmbeddingService(embeddingRegistry, {
     guard: new EmbeddingUsageGuard({
       requestsPerMinute: 10,

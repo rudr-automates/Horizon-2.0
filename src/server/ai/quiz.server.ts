@@ -13,6 +13,8 @@ import type { TutorCitation } from "@/lib/tutor-types";
 import type { AiDatabase } from "../retrieval/ai-database";
 import { EvidenceContractError, isEvidenceContractError } from "../retrieval/errors";
 import { loadLessonEvidence } from "../retrieval/lesson-evidence.server";
+import { lessonTranscriptReadiness } from "../ingestion/readiness.server";
+import { retrieveVideoEvidence } from "../rag/service.server";
 import { buildGroundedContext, selectEligibleEvidence, validateScope } from "../retrieval/scope";
 import type { EvidenceChunk } from "../retrieval/types";
 import { isAiError } from "./errors";
@@ -173,6 +175,18 @@ export async function generateQuiz(input: {
     if (!loaded)
       return failure("lesson_not_found", "That lesson is unavailable or you do not have access.");
     const { lesson, chunks } = loaded;
+    // A lesson whose transcript is still being prepared must say so, rather
+    // than claiming there is no eligible material.
+    if (!chunks.length) {
+      const readiness = await lessonTranscriptReadiness({
+        supabase: input.supabase,
+        userId: input.userId,
+        lesson,
+      });
+      if (readiness.state !== "ready") {
+        return failure("processing", readiness.message);
+      }
+    }
     if (lesson.duration_seconds <= 0) {
       return failure("invalid_scope", "The lesson duration is not known yet.");
     }
@@ -186,7 +200,20 @@ export async function generateQuiz(input: {
       positionSeconds: input.positionSeconds,
     };
     validateScope(scope);
-    const eligible = selectEligibleEvidence(scope, chunks);
+    let eligible = selectEligibleEvidence(scope, chunks);
+    // Generate practice from the central pgvector index when it exists. The
+    // similarity query is already restricted to covered passages by SQL.
+    const rag = await retrieveVideoEvidence({
+      supabase: input.supabase,
+      lesson,
+      positionSeconds: input.positionSeconds,
+      query: `Key concepts, definitions and examples from ${lesson.title}`,
+      mode: "quiz",
+      limit: 10,
+    });
+    const ragEligible = rag ? selectEligibleEvidence(scope, rag.chunks) : [];
+    const usedVector = ragEligible.length > 0;
+    if (usedVector) eligible = ragEligible;
     if (!eligible.length) {
       return failure(
         "retrieval_unavailable",
@@ -194,15 +221,15 @@ export async function generateQuiz(input: {
       );
     }
 
-    // Eligible rows arrive in database order: take the most recent material by
-    // lesson position instead of whatever rows sort last.
-    const selected = [...eligible]
-      .sort((a, b) => evidencePosition(a) - evidencePosition(b))
-      .slice(-10);
+    // Legacy rows arrive in database order: take the most recent material by
+    // lesson position. pgvector matches are already ranked for this lesson.
+    const selected = usedVector
+      ? eligible.slice(0, 10)
+      : [...eligible].sort((a, b) => evidencePosition(a) - evidencePosition(b)).slice(-10);
     const context = buildGroundedContext(scope, selected, {
       maxChunks: 8,
       maxTotalChars: 7_000,
-      retrieval: "summary",
+      retrieval: usedVector ? (rag?.strategy ?? "semantic") : "summary",
     });
     const byToken = new Map(context.evidence.map((item, index) => [`E${index + 1}`, item.id]));
     const byId = new Map(eligible.map((chunk) => [chunk.id, chunk]));
