@@ -24,15 +24,16 @@
 - Worker unit tests: 4 passed for JSON normalization, malformed timestamps, ordering and duration bounds.
 - FFmpeg normalized the bundled JFK audio sample to mono 16 kHz WAV; output was 352,078 bytes.
 - Real local inference ran with `whisper.cpp/build-ucrt64/bin/whisper-cli.exe` and `ggml-large-v3-turbo.bin` on the bundled 11-second sample. The logs report `using Vulkan0 backend`, AMD Radeon RX 580 2048SP, and `fp16: 0`. It emitted one segment from 0.000s to 10.400s with the JFK speech. The worker parser accepted that actual JSON output. The run took 7.86 seconds; this is one sample measurement, not a general throughput claim.
+- The [Vercel Preview for commit `6143639`](https://horizonreboot-ng70ckwhu-irrelevant3.vercel.app) served the Horizon home page with HTTP 200. Using the authenticated Vercel CLI, the deployed worker health route (no learner token) and worker claim route (deliberately invalid worker token) both reached the app and returned JSON `401 unauthorized`, confirming route deployment and auth guards behind deployment protection.
 - `git diff --check`: passed.
 
 The existing suite contains tutor/quiz workflow and future-evidence/citation checks, but live AI/database cases are skipped in this environment. The existing answer and quiz routes were left unchanged; live generation was not independently verified here.
 
 ## Not verified remotely
 
-- The migration has **not** been applied to Supabase. No disposable review database branch was available for the schema, RLS, lease, retry, persistence or account-isolation checks. Production was not changed.
-- No preview-only `SUPABASE_SERVICE_ROLE_KEY` or `WHISPER_WORKER_TOKEN` was provisioned. The public site therefore has not communicated with the local PC worker; no remote video upload, transcription, database persistence or Horizon ingestion was performed.
-- A loopback HTTP auth smoke check could not run because this environment blocks local socket access.
+- The linked Supabase project currently has no database branches. The migration has **not** been applied; schema, RLS, lease, retry, persistence and account-isolation behavior were not exercised against a database. Production was not changed.
+- Vercel has no Preview `SUPABASE_SERVICE_ROLE_KEY` or `WHISPER_WORKER_TOKEN` configured for this integration. Production-only Supabase secrets were not read, copied or used. The public site therefore has not communicated with the local PC worker; no remote video upload, transcription, database persistence or Horizon ingestion was performed.
+- A loopback HTTP auth smoke check could not run because this environment blocks local socket access; the deployed preview auth checks above were used instead.
 - The live answer/quiz integration suites were skipped, so the report does not claim those APIs are live-verified.
 
 ## Review setup needed for remote end-to-end acceptance
