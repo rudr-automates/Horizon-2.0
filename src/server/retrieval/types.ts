@@ -21,6 +21,8 @@ export interface EvidenceProvenance {
   sourceUrl?: string;
 }
 
+export type EvidenceAvailability = "always" | "timeline" | "unknown";
+
 /**
  * One retrievable unit. `ownerId` is null only for demo resources; a private
  * resource without an owner is invalid and is never returned to a learner.
@@ -37,6 +39,11 @@ export interface EvidenceChunk {
   text: string;
   locator: EvidenceLocator;
   provenance?: EvidenceProvenance;
+  /** Explicit resource policy. Missing historical metadata is treated as unknown. */
+  availability?: EvidenceAvailability;
+  /** Timeline alignment for non-video resources, in lesson seconds. */
+  alignmentStartSeconds?: number;
+  alignmentEndSeconds?: number;
   /** The exact embedding space that produced this vector, if any. */
   embeddingSpace?: EmbeddingSpace;
   /** A vector already stored by ingestion, only when its space matches. */
@@ -53,6 +60,8 @@ export interface EvidenceScope {
   lessonDurationSeconds: number;
   /** Learner's current playback position. Validated by the server. */
   positionSeconds: number;
+  /** Unknown-alignment sources may be consulted as references only on request. */
+  allowUnknownReferences?: boolean;
 }
 
 export interface GroundedEvidence {
@@ -61,6 +70,7 @@ export interface GroundedEvidence {
   resourceKind: ResourceKind;
   locator: EvidenceLocator;
   provenance?: EvidenceProvenance;
+  availability: EvidenceAvailability;
 }
 
 export type RetrievalStrategy = "keyword" | "semantic" | "hybrid" | "summary";

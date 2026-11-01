@@ -162,6 +162,18 @@ async function loadResourceChunks(
           ? {}
           : { sourceUrl: sourceUrls.get(resource.id)! }),
       },
+      availability:
+        resource.metadata["availability_policy"] === "always"
+          ? "always"
+          : resource.metadata["availability_policy"] === "timeline"
+            ? "timeline"
+            : "unknown",
+      ...(typeof resource.metadata["alignment_start_seconds"] === "number"
+        ? { alignmentStartSeconds: resource.metadata["alignment_start_seconds"] }
+        : {}),
+      ...(typeof resource.metadata["alignment_end_seconds"] === "number"
+        ? { alignmentEndSeconds: resource.metadata["alignment_end_seconds"] }
+        : {}),
       ...(vector === undefined
         ? {}
         : {

@@ -57,11 +57,13 @@ const pdf = chunk("pdf", {
   text: "Cosine similarity compares the direction of normalised vectors.",
   locator: { kind: "page", pageNumber: 4 },
   provenance: { title: "Vector Search Basics.pdf" },
+  availability: "always",
 });
 const slides = chunk("slides", {
   resourceKind: "slides",
   text: "Slide notes explain cosine similarity and vector direction.",
   locator: { kind: "slide", slideNumber: 2 },
+  availability: "always",
 });
 const foreign = chunk("foreign", {
   ownerId: "user-2",
@@ -82,6 +84,7 @@ const demoPdf = chunk("demo-pdf", {
   resourceKind: "pdf",
   text: "The public sample PDF explains embeddings and cosine similarity.",
   locator: { kind: "page", pageNumber: 1 },
+  availability: "always",
 });
 const failed = chunk("failed", { status: "failed", text: "Embeddings that failed processing." });
 const overrun = chunk("overrun", {
@@ -150,6 +153,67 @@ describe("evidence scope and timestamp eligibility", () => {
       failureCode(() => validateScope({ ...SCOPE, lessonIsDemo: true, lessonOwnerId: "user-1" })),
     ).toBe("invalid_scope");
     expect(validateLearnerPosition(60, 60)).toBe(60);
+  });
+
+  it("requires explicit policy for document evidence and gates timeline ranges by their end", () => {
+    const glossary = chunk("glossary", {
+      resourceKind: "pdf",
+      locator: { kind: "page", pageNumber: 1 },
+      availability: "always",
+    });
+    const laterPdf = chunk("later-pdf", {
+      resourceKind: "pdf",
+      locator: { kind: "page", pageNumber: 9 },
+      availability: "timeline",
+      alignmentStartSeconds: 1_000,
+      alignmentEndSeconds: 1_200,
+    });
+    const laterSlide = chunk("later-slide", {
+      resourceKind: "slides",
+      locator: { kind: "slide", slideNumber: 8 },
+      availability: "timeline",
+      alignmentStartSeconds: 1_000,
+      alignmentEndSeconds: 1_200,
+    });
+    const unknown = chunk("unknown-doc", {
+      resourceKind: "pdf",
+      locator: { kind: "page", pageNumber: 3 },
+    });
+    expect(
+      selectEligibleEvidence(SCOPE, [glossary, laterPdf, laterSlide, unknown]).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["glossary"]);
+    expect(
+      selectEligibleEvidence({ ...SCOPE, lessonDurationSeconds: 1_300, positionSeconds: 1_200 }, [
+        laterPdf,
+        laterSlide,
+      ]).map((item) => item.id),
+    ).toEqual(["later-pdf", "later-slide"]);
+    expect(
+      selectEligibleEvidence({ ...SCOPE, allowUnknownReferences: true }, [unknown]).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["unknown-doc"]);
+  });
+
+  it("rejects malformed alignment and alignment assigned to another lesson", () => {
+    const invalid = chunk("bad-range", {
+      resourceKind: "pdf",
+      locator: { kind: "page", pageNumber: 2 },
+      availability: "timeline",
+      alignmentStartSeconds: 50,
+      alignmentEndSeconds: 61,
+    });
+    const crossLesson = chunk("other-doc", {
+      lessonId: "lesson-2",
+      resourceKind: "pdf",
+      locator: { kind: "page", pageNumber: 2 },
+      availability: "timeline",
+      alignmentStartSeconds: 1,
+      alignmentEndSeconds: 20,
+    });
+    expect(selectEligibleEvidence(SCOPE, [invalid, crossLesson])).toEqual([]);
   });
 });
 
@@ -221,11 +285,13 @@ describe("grounded evidence preparation", () => {
       text: "A".repeat(60),
       locator: { kind: "page", pageNumber: 1 },
       resourceKind: "pdf",
+      availability: "always",
     });
     const second = chunk("long-b", {
       text: "B".repeat(60),
       locator: { kind: "page", pageNumber: 2 },
       resourceKind: "pdf",
+      availability: "always",
     });
 
     const context = buildGroundedContext(SCOPE, [first, second], {

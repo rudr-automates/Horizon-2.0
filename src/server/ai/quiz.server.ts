@@ -68,6 +68,7 @@ function citationFor(chunk: EvidenceChunk): TutorCitation {
     text: chunk.text.slice(0, 800),
     resourceKind: chunk.resourceKind,
     locator: chunk.locator,
+    availability: chunk.locator.kind === "video" ? "timeline" : (chunk.availability ?? "unknown"),
     ...(chunk.provenance?.title === undefined ? {} : { title: chunk.provenance.title }),
     ...(chunk.provenance?.sourceUrl === undefined ? {} : { sourceUrl: chunk.provenance.sourceUrl }),
   };

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Captions } from "lucide-react";
+import { Search, Captions, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Lesson } from "@/lib/learning-queries";
@@ -23,11 +23,72 @@ export function TranscriptPanel({
   const [search, setSearch] = useState(""),
     [captionText, setCaptionText] = useState(""),
     [busy, setBusy] = useState(false),
-    [follow, setFollow] = useState(true);
+    [follow, setFollow] = useState(true),
+    [job, setJob] = useState<{
+      id: string;
+      status: string;
+      progress?: { stage?: string };
+      error_message?: string | null;
+    } | null>(null),
+    [jobBusy, setJobBusy] = useState(false),
+    [workerOnline, setWorkerOnline] = useState<boolean | null>(null);
   const segments = transcriptSegments(lesson.transcript);
   const current = activeSegment(segments, position);
   const qc = useQueryClient();
   const list = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (lesson.is_demo) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      let activeJob = false;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          if (alive) timer = setTimeout(poll, 30_000);
+          return;
+        }
+        const health = await fetch("/api/whisper/worker/heartbeat", {
+          headers: { authorization: `Bearer ${data.session.access_token}` },
+        });
+        const healthPayload = (await health.json().catch(() => null)) as {
+          online?: boolean;
+        } | null;
+        if (alive) setWorkerOnline(health.ok ? Boolean(healthPayload?.online) : null);
+        const response = await fetch(
+          `/api/whisper/jobs?lessonId=${encodeURIComponent(lesson.id)}`,
+          {
+            headers: { authorization: `Bearer ${data.session.access_token}` },
+          },
+        );
+        const payload = (await response.json().catch(() => null)) as {
+          job?: {
+            id: string;
+            status: string;
+            progress?: { stage?: string };
+            error_message?: string | null;
+          } | null;
+        } | null;
+        if (alive && response.ok) {
+          setJob(payload?.job ?? null);
+          activeJob = Boolean(payload?.job && !["ready", "failed"].includes(payload.job.status));
+          if (payload?.job?.status === "ready") {
+            await qc.invalidateQueries({ queryKey: ["learning", "lesson", lesson.id] });
+            await qc.invalidateQueries({ queryKey: ["learning", "catalog"] });
+          }
+        }
+        if (alive) timer = setTimeout(poll, activeJob ? 8000 : 30_000);
+      } catch {
+        /* Transient status errors do not interrupt captions or playback. */
+        if (alive) timer = setTimeout(poll, 30_000);
+      }
+    };
+    void poll();
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [lesson.id, lesson.is_demo, job?.id, job?.status, qc]);
   useEffect(() => {
     if (!follow || search) return;
     const el = list.current?.querySelector<HTMLElement>('[aria-current="true"]');
@@ -55,6 +116,34 @@ export function TranscriptPanel({
       setBusy(false);
     }
   }
+  async function requestWhisper() {
+    try {
+      setJobBusy(true);
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) throw new Error("Sign in again to request transcription.");
+      const response = await fetch("/api/whisper/jobs", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${data.session.access_token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ lessonId: lesson.id }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        status?: string;
+        message?: string;
+        job?: { id: string; status: string };
+      } | null;
+      if (!response.ok)
+        throw new Error(payload?.message ?? "Transcription could not be requested.");
+      setJob(payload?.job ?? { id: "", status: payload?.status ?? "queued" });
+      toast.success("Transcription job queued");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not request transcription");
+    } finally {
+      setJobBusy(false);
+    }
+  }
   return (
     <div>
       <div className="relative">
@@ -67,6 +156,28 @@ export function TranscriptPanel({
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+      {!lesson.is_demo && lesson.video_url.startsWith("storage://lesson-videos/") && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+          <div>
+            <p className="font-medium">Local Whisper transcription</p>
+            <p className="text-xs text-muted-foreground">
+              {job
+                ? `${job.status === "retry_wait" ? "Waiting to retry" : job.status}${job.progress?.stage ? ` · ${job.progress.stage}` : ""}${job.error_message ? ` · ${job.error_message}` : ""}${workerOnline === false ? " · PC worker offline; queued work waits for reconnect." : ""}`
+                : workerOnline === false
+                  ? "PC worker offline; queued jobs wait until it reconnects."
+                  : workerOnline
+                    ? "PC worker online. Queue this private upload for transcription."
+                    : "Checking your PC worker status…"}
+            </p>
+          </div>
+          {(!job || job.status === "failed") && (
+            <Button size="sm" variant="outline" disabled={jobBusy} onClick={requestWhisper}>
+              <RotateCcw />
+              {jobBusy ? "Queueing…" : job ? "Retry" : "Transcribe"}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
         <span>
           {segments.length} passages · {lesson.transcript_status}

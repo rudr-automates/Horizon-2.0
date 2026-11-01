@@ -87,6 +87,13 @@ export const Route = createFileRoute("/api/resources/upload")({
         const action = String(body["action"] ?? "");
         const lessonId = String(body["lessonId"] ?? "").trim();
         const filename = safeFilename(body["filename"]);
+        const availability = body["availability"];
+        const alignmentStartSeconds = body["alignmentStartSeconds"] === undefined
+          ? undefined
+          : Number(body["alignmentStartSeconds"]);
+        const alignmentEndSeconds = body["alignmentEndSeconds"] === undefined
+          ? undefined
+          : Number(body["alignmentEndSeconds"]);
         if (!lessonId) {
           return rejection(400, "invalid_file", "Choose a lesson before uploading.");
         }
@@ -154,6 +161,11 @@ export const Route = createFileRoute("/api/resources/upload")({
             mimeType: stored.data.type,
             bytes,
             storedPath: path,
+            availability: availability === "always" || availability === "timeline" || availability === "unknown"
+              ? availability
+              : "unknown",
+            ...(alignmentStartSeconds === undefined ? {} : { alignmentStartSeconds }),
+            ...(alignmentEndSeconds === undefined ? {} : { alignmentEndSeconds }),
           });
           if (result.status !== "ready") {
             // Nothing references the object yet, so take it out of storage.

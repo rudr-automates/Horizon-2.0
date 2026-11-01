@@ -16,6 +16,7 @@ export default tseslint.config(
       ".tanstack",
       ".nitro",
       "src/routeTree.gen.ts",
+      "whisper.cpp/**",
       // Downloaded course material and third-party assets are not project
       // source; linting or reformatting them would rewrite external content.
       "download/**",

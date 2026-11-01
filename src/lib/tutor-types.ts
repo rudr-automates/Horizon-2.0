@@ -1,5 +1,10 @@
 import type { AiErrorCode } from "@/server/ai/types";
-import type { EvidenceLocator, ResourceKind, RetrievalStrategy } from "@/server/retrieval/types";
+import type {
+  EvidenceAvailability,
+  EvidenceLocator,
+  ResourceKind,
+  RetrievalStrategy,
+} from "@/server/retrieval/types";
 
 export type TutorMode = "question" | "explain" | "summary";
 
@@ -21,6 +26,7 @@ export interface TutorCitation {
   text: string;
   resourceKind: ResourceKind;
   locator: EvidenceLocator;
+  availability: EvidenceAvailability;
   title?: string;
   sourceUrl?: string;
   quote?: string;

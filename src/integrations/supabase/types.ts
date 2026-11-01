@@ -8,6 +8,58 @@ export type Database = {
   };
   public: {
     Tables: {
+      transcription_jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          lesson_id: string;
+          media_path: string;
+          status: string;
+          attempt_count: number;
+          max_attempts: number;
+          next_attempt_at: string;
+          worker_id: string | null;
+          lease_token: string | null;
+          lease_expires_at: string | null;
+          heartbeat_at: string | null;
+          progress: Json;
+          error_code: string | null;
+          error_message: string | null;
+          resource_id: string | null;
+          model_metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          lesson_id: string;
+          media_path: string;
+          status?: string;
+          attempt_count?: number;
+          max_attempts?: number;
+          next_attempt_at?: string;
+          worker_id?: string | null;
+          lease_token?: string | null;
+          lease_expires_at?: string | null;
+          heartbeat_at?: string | null;
+          progress?: Json;
+          error_code?: string | null;
+          error_message?: string | null;
+          resource_id?: string | null;
+          model_metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["transcription_jobs"]["Insert"]>;
+        Relationships: [];
+      };
+      transcription_workers: {
+        Row: { worker_id: string; state: string; last_seen_at: string; metadata: Json };
+        Insert: { worker_id: string; state?: string; last_seen_at?: string; metadata?: Json };
+        Update: Partial<Database["public"]["Tables"]["transcription_workers"]["Insert"]>;
+        Relationships: [];
+      };
       courses: {
         Row: {
           category: string;
@@ -656,7 +708,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      claim_transcription_job: {
+        Args: { p_worker_id: string };
+        Returns: Database["public"]["Tables"]["transcription_jobs"]["Row"][];
+      };
     };
     Enums: {
       [_ in never]: never;
