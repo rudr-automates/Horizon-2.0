@@ -20,6 +20,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+__pycache__/
+*.py[cod]
 
 # Hosting build output
 .vercel/
@@ -54,6 +56,9 @@ supabase/.temp/
 /video_galleries/
 /content_map.json
 /data.json
+
+# Local Whisper source, build, model weights and private inference outputs.
+/whisper.cpp/
 
 # Root-level documents of the downloaded mirror. Horizon's own HTML is rendered
 # by TanStack Start (src/routes/index.tsx) and its static files are served from

@@ -144,6 +144,20 @@ export function ImportVideo({ userId }: { userId: string }) {
         toast.error(payload?.message ?? "The video could not be added.");
         return;
       }
+      const queued = await fetch("/api/whisper/jobs", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ lessonId: payload.lessonId }),
+      });
+      if (!queued.ok) {
+        const queueMessage = (await queued.json().catch(() => null)) as { message?: string } | null;
+        toast.info(
+          queueMessage?.message ??
+            "Video uploaded. Automatic transcription is not configured yet; you can still add captions.",
+        );
+      } else {
+        toast.success("Video uploaded. Local Whisper transcription has been queued.");
+      }
       await openLesson(payload.lessonId);
     } catch {
       toast.error("The video could not be uploaded. Nothing was added.");
@@ -172,9 +186,9 @@ export function ImportVideo({ userId }: { userId: string }) {
             Paste a YouTube, Vimeo or public MP4/WebM link, or upload an MP4/WebM file from this
             computer. Uploaded files stay in private storage only you can read. Playback depends on
             the source's embedding permissions. Adding a playable video does not create a
-            transcript; automatic transcription is not available for arbitrary links here. Add an
-            SRT/WebVTT caption track in the lesson's Transcript tab before asking questions about
-            the video.
+            transcript. Private uploads can be queued for transcription by the linked Horizon
+            worker; arbitrary links stay on the manual-caption path. Add an SRT/WebVTT caption track
+            in the lesson's Transcript tab if automatic transcription is unavailable.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-2" role="tablist" aria-label="Import method">

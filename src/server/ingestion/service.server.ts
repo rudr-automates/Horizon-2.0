@@ -193,6 +193,7 @@ export async function ingestLessonResource(input: {
   availability?: "always" | "timeline" | "unknown";
   alignmentStartSeconds?: number;
   alignmentEndSeconds?: number;
+  provenance?: Record<string, unknown>;
 }): Promise<IngestResult> {
   if (!input.userId.trim()) return failure("database_unavailable", "No authenticated learner.");
   if (input.bytes.byteLength > MAX_RESOURCE_BYTES) {
@@ -311,6 +312,7 @@ export async function ingestLessonResource(input: {
     content_hash: contentHash,
     metadata: {
       ...extracted.metadata,
+      ...(input.provenance ?? {}),
       availability_policy: extracted.kind === "video_transcript" ? "timeline" : availability,
       ...(availability === "timeline"
         ? {
@@ -361,6 +363,7 @@ export async function ingestLessonResource(input: {
       status: "ready",
       metadata: {
         ...extracted.metadata,
+        ...(input.provenance ?? {}),
         availability_policy: extracted.kind === "video_transcript" ? "timeline" : availability,
         ...(availability === "timeline"
           ? {

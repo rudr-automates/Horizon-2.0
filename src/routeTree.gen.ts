@@ -25,6 +25,10 @@ import { Route as AuthenticatedLearnLessonIdRouteImport } from './routes/_authen
 import { Route as ApiAiHealthRouteImport } from './routes/api/ai/health'
 import { Route as ApiResourcesUploadRouteImport } from './routes/api/resources/upload'
 import { Route as ApiVideosUploadRouteImport } from './routes/api/videos/upload'
+import { Route as ApiWhisperJobsRouteImport } from './routes/api/whisper/jobs'
+import { Route as ApiWhisperWorkerClaimRouteImport } from './routes/api/whisper/worker/claim'
+import { Route as ApiWhisperWorkerHeartbeatRouteImport } from './routes/api/whisper/worker/heartbeat'
+import { Route as ApiWhisperWorkerJobsJobIdRouteImport } from './routes/api/whisper/worker/jobs/$jobId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -107,6 +111,28 @@ const ApiVideosUploadRoute = ApiVideosUploadRouteImport.update({
   path: '/api/videos/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWhisperJobsRoute = ApiWhisperJobsRouteImport.update({
+  id: '/api/whisper/jobs',
+  path: '/api/whisper/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWhisperWorkerClaimRoute = ApiWhisperWorkerClaimRouteImport.update({
+  id: '/api/whisper/worker/claim',
+  path: '/api/whisper/worker/claim',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWhisperWorkerHeartbeatRoute =
+  ApiWhisperWorkerHeartbeatRouteImport.update({
+    id: '/api/whisper/worker/heartbeat',
+    path: '/api/whisper/worker/heartbeat',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiWhisperWorkerJobsJobIdRoute =
+  ApiWhisperWorkerJobsJobIdRouteImport.update({
+    id: '/api/whisper/worker/jobs/$jobId',
+    path: '/api/whisper/worker/jobs/$jobId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +150,10 @@ export interface FileRoutesByFullPath {
   '/api/ai/health': typeof ApiAiHealthRoute
   '/api/resources/upload': typeof ApiResourcesUploadRoute
   '/api/videos/upload': typeof ApiVideosUploadRoute
+  '/api/whisper/jobs': typeof ApiWhisperJobsRoute
+  '/api/whisper/worker/claim': typeof ApiWhisperWorkerClaimRoute
+  '/api/whisper/worker/heartbeat': typeof ApiWhisperWorkerHeartbeatRoute
+  '/api/whisper/worker/jobs/$jobId': typeof ApiWhisperWorkerJobsJobIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -141,6 +171,10 @@ export interface FileRoutesByTo {
   '/api/ai/health': typeof ApiAiHealthRoute
   '/api/resources/upload': typeof ApiResourcesUploadRoute
   '/api/videos/upload': typeof ApiVideosUploadRoute
+  '/api/whisper/jobs': typeof ApiWhisperJobsRoute
+  '/api/whisper/worker/claim': typeof ApiWhisperWorkerClaimRoute
+  '/api/whisper/worker/heartbeat': typeof ApiWhisperWorkerHeartbeatRoute
+  '/api/whisper/worker/jobs/$jobId': typeof ApiWhisperWorkerJobsJobIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,6 +194,10 @@ export interface FileRoutesById {
   '/api/ai/health': typeof ApiAiHealthRoute
   '/api/resources/upload': typeof ApiResourcesUploadRoute
   '/api/videos/upload': typeof ApiVideosUploadRoute
+  '/api/whisper/jobs': typeof ApiWhisperJobsRoute
+  '/api/whisper/worker/claim': typeof ApiWhisperWorkerClaimRoute
+  '/api/whisper/worker/heartbeat': typeof ApiWhisperWorkerHeartbeatRoute
+  '/api/whisper/worker/jobs/$jobId': typeof ApiWhisperWorkerJobsJobIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -179,6 +217,10 @@ export interface FileRouteTypes {
     | '/api/ai/health'
     | '/api/resources/upload'
     | '/api/videos/upload'
+    | '/api/whisper/jobs'
+    | '/api/whisper/worker/claim'
+    | '/api/whisper/worker/heartbeat'
+    | '/api/whisper/worker/jobs/$jobId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -196,6 +238,10 @@ export interface FileRouteTypes {
     | '/api/ai/health'
     | '/api/resources/upload'
     | '/api/videos/upload'
+    | '/api/whisper/jobs'
+    | '/api/whisper/worker/claim'
+    | '/api/whisper/worker/heartbeat'
+    | '/api/whisper/worker/jobs/$jobId'
   id:
     | '__root__'
     | '/'
@@ -214,6 +260,10 @@ export interface FileRouteTypes {
     | '/api/ai/health'
     | '/api/resources/upload'
     | '/api/videos/upload'
+    | '/api/whisper/jobs'
+    | '/api/whisper/worker/claim'
+    | '/api/whisper/worker/heartbeat'
+    | '/api/whisper/worker/jobs/$jobId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -227,6 +277,10 @@ export interface RootRouteChildren {
   ApiAiHealthRoute: typeof ApiAiHealthRoute
   ApiResourcesUploadRoute: typeof ApiResourcesUploadRoute
   ApiVideosUploadRoute: typeof ApiVideosUploadRoute
+  ApiWhisperJobsRoute: typeof ApiWhisperJobsRoute
+  ApiWhisperWorkerClaimRoute: typeof ApiWhisperWorkerClaimRoute
+  ApiWhisperWorkerHeartbeatRoute: typeof ApiWhisperWorkerHeartbeatRoute
+  ApiWhisperWorkerJobsJobIdRoute: typeof ApiWhisperWorkerJobsJobIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -343,6 +397,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVideosUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/whisper/jobs': {
+      id: '/api/whisper/jobs'
+      path: '/api/whisper/jobs'
+      fullPath: '/api/whisper/jobs'
+      preLoaderRoute: typeof ApiWhisperJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/whisper/worker/claim': {
+      id: '/api/whisper/worker/claim'
+      path: '/api/whisper/worker/claim'
+      fullPath: '/api/whisper/worker/claim'
+      preLoaderRoute: typeof ApiWhisperWorkerClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/whisper/worker/heartbeat': {
+      id: '/api/whisper/worker/heartbeat'
+      path: '/api/whisper/worker/heartbeat'
+      fullPath: '/api/whisper/worker/heartbeat'
+      preLoaderRoute: typeof ApiWhisperWorkerHeartbeatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/whisper/worker/jobs/$jobId': {
+      id: '/api/whisper/worker/jobs/$jobId'
+      path: '/api/whisper/worker/jobs/$jobId'
+      fullPath: '/api/whisper/worker/jobs/$jobId'
+      preLoaderRoute: typeof ApiWhisperWorkerJobsJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -378,6 +460,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiHealthRoute: ApiAiHealthRoute,
   ApiResourcesUploadRoute: ApiResourcesUploadRoute,
   ApiVideosUploadRoute: ApiVideosUploadRoute,
+  ApiWhisperJobsRoute: ApiWhisperJobsRoute,
+  ApiWhisperWorkerClaimRoute: ApiWhisperWorkerClaimRoute,
+  ApiWhisperWorkerHeartbeatRoute: ApiWhisperWorkerHeartbeatRoute,
+  ApiWhisperWorkerJobsJobIdRoute: ApiWhisperWorkerJobsJobIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
