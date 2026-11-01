@@ -1,0 +1,18 @@
+{
+  "dataset_id": "horizon-synthetic-spaced-repetition-v1",
+  "title": "Spaced Repetition (synthetic demonstration)",
+  "language": "en",
+  "provenance": "Original synthetic acceptance content; generated sample video and project-authored captions/slides. No third-party course material included.",
+  "media": {
+    "video": { "path": "spaced-repetition-demo.mp4", "duration_seconds": 60, "generated_pattern_and_tone": true },
+    "transcript": { "path": "spaced-repetition-demo.vtt", "format": "WebVTT", "cue_count": 10, "aligned_to_video": true },
+    "slides": { "path": "spaced-repetition-practice.pptx", "slide_count": 3 }
+  },
+  "expected_questions": [
+    { "question": "What is a common starting schedule for spaced repetition?", "expected_answer": "One day, then three days, one week, two weeks, and one month between reviews.", "evidence": [{ "source": "spaced-repetition-demo.vtt", "start_seconds": 12, "end_seconds": 18, "cue": 3 }, { "source": "spaced-repetition-practice.pptx", "slide": 1 }] },
+    { "question": "Why should retrieval happen before checking the answer?", "expected_answer": "Recall first tests memory; checking afterward shows whether the recalled answer was correct.", "evidence": [{ "source": "spaced-repetition-demo.vtt", "start_seconds": 18, "end_seconds": 24, "cue": 4 }, { "source": "spaced-repetition-practice.pptx", "slide": 2 }] },
+    { "question": "What happens to an item after a wrong answer?", "expected_answer": "It returns to the beginning of the review schedule.", "evidence": [{ "source": "spaced-repetition-demo.vtt", "start_seconds": 30, "end_seconds": 36, "cue": 6 }, { "source": "spaced-repetition-practice.pptx", "slide": 2 }] },
+    { "question": "How does interleaving help?", "expected_answer": "Mixing topics requires choosing which method fits each problem and can improve transfer.", "evidence": [{ "source": "spaced-repetition-demo.vtt", "start_seconds": 36, "end_seconds": 42, "cue": 7 }, { "source": "spaced-repetition-practice.pptx", "slide": 3 }] },
+    { "question": "How should a review card be designed?", "expected_answer": "Keep one idea per card so an incorrect answer identifies the specific fact to review again.", "evidence": [{ "source": "spaced-repetition-demo.vtt", "start_seconds": 42, "end_seconds": 48, "cue": 8 }, { "source": "spaced-repetition-practice.pptx", "slide": 3 }] }
+  ]
+}

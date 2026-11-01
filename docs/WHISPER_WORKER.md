@@ -4,14 +4,14 @@ Horizon queues private MP4/WebM uploads in Supabase. A Windows worker polls the 
 
 ## Backend setup
 
-1. Apply `supabase/migrations/20261031235217_whisper_transcription_jobs.sql` to the review Supabase branch. It adds the owner-readable queue and a `FOR UPDATE SKIP LOCKED` service-role-only atomic claim function. It does not apply itself to production.
-2. Configure these **server-only** deployment variables on the Horizon review deployment:
+1. Apply `supabase/migrations/20261031235217_whisper_transcription_jobs.sql` to the confirmed Horizon 2.0 Supabase project through the Supabase migration tool. This additive migration adds the owner-readable queue and a `FOR UPDATE SKIP LOCKED` service-role-only atomic claim function. It is not applied yet; the tool's action-time confirmation expired.
+2. Configure these **server-only** deployment variables on the Horizon production deployment after the migration is applied:
    - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service-role key. Never prefix it with `VITE_`.
    - `WHISPER_WORKER_TOKEN`: random 48-byte-or-longer secret shared only with the worker.
-3. Set `HORIZON_API_URL` to that review deployment and `HORIZON_SUPABASE_URL` to its Supabase project URL in `worker/.env`.
+3. Set `HORIZON_API_URL` to the verified production deployment and `HORIZON_SUPABASE_URL` to the Horizon 2.0 Supabase project URL in `worker/.env`.
 4. Copy `worker/.env.example` to `worker/.env`; fill the deployment values. `.env` is ignored by Git.
 
-No production database migration or deployment is performed by this change. The review flow is unavailable until a review database has this migration and preview-only server secrets are configured.
+The public Whisper flow is currently unavailable: its production heartbeat endpoint returns 404 because production does not include these local `main` changes. No migration or deployment has been completed in this finalization pass. Do not start the worker until the migration and server-only credentials are configured and verified.
 
 ## Windows setup and launch
 
@@ -39,7 +39,7 @@ The application accepts MP4/WebM private uploads only. YouTube, Vimeo, and direc
 
 ## Troubleshooting
 
-- **Worker says queue unconfigured**: apply the migration to the review database and set the preview `SUPABASE_SERVICE_ROLE_KEY` and `WHISPER_WORKER_TOKEN`.
+- **Worker says queue unconfigured**: apply the migration to the confirmed Horizon 2.0 project and set the server-only `SUPABASE_SERVICE_ROLE_KEY` and `WHISPER_WORKER_TOKEN`.
 - **Executable fails to initialize**: verify the absolute CLI path and set `WHISPER_RUNTIME_PATH` to the MSYS2 UCRT64 `bin` directory. The worker performs a `--help` startup check.
 - **Model checksum mismatch**: verify the local large-v3-turbo model; if it is an intentionally different verified copy, set its expected SHA-1 in `WHISPER_MODEL_SHA1`.
 - **GPU not confirmed**: inspect the per-job whisper.cpp logs and Vulkan driver/device availability. CPU fallback is disabled by default.
@@ -48,4 +48,4 @@ The application accepts MP4/WebM private uploads only. YouTube, Vimeo, and direc
 
 ## Verification boundaries
 
-Local parser/worker tests can run without network access. A successful public remote job requires the review migration, preview-only service role key and worker token, a running Windows worker, and a test account/upload. Those credentials and a disposable review database are intentionally not created or changed by the code patch.
+Local parser/worker tests can run without network access. A successful public remote job requires the production migration, server-only service role key and worker token, a running Windows worker, and a test account/upload. The migration confirmation expired before application; the worker token is not configured. No remote job has been claimed or processed.

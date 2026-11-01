@@ -9,6 +9,27 @@ repository-readiness pass followed, covering migration recovery, ignore rules,
 secret scoping and the full check suite again (section 7). No Git, GitHub,
 hosting or deployment operation was performed at any point.
 
+## Finalization addendum — 1 November 2026
+
+This addendum supersedes older status statements above where the two conflict.
+The finalization run used the authorized Horizon 2.0 project and preserved the
+operator, two unclassified accounts, both demo courses, the Ellipse lesson,
+schema, migrations, RLS and Auth settings. It removed only the previously
+classified synthetic E2E account, two synthetic lessons and their scoped child
+records and seven Storage objects. A local logical/data-object backup was
+verified before deletion at `.local-backups/horizon-finalization-2026-11-01/`;
+it is ignored by Git. Post-cleanup verification found three Auth users, two demo
+courses, 15 lessons, all 13 public tables with RLS enabled and the same 10
+applied migrations.
+
+Current finalization checks: 112 tests passed and 7 were skipped; live configured
+Gemini, Groq and Jina smoke requests passed. Production landing and `/api/ai/health`
+returned HTTP 200. The Supabase Whisper queue migration remains unapplied because
+its action-time confirmation expired twice. Production Whisper heartbeat returns
+404, `WHISPER_WORKER_TOKEN` is not configured, and no public signup email path or
+end-to-end transcription job was verified. Auth settings were not changed. See
+`../FINAL_RELEASE_TRACKER.md` and `EVALUATION.md` for the current release gates.
+
 ## 1. Feature matrix
 
 **Live recheck (30 Oct):** The local app served `/`, `/sign-in`, `/library`,
@@ -180,26 +201,22 @@ Deferred enhancements (explicitly not built, documented in code and docs):
 | Second-account re-verification of the new bucket    | Not run: no second credentials were available. Verified instead by anonymous denial, owner allow, and the folder-scoped policy definition.                                                                                                                                                                                                   |
 | Leaked-password protection                          | Supabase advisor WARN — a dashboard setting, not code.                                                                                                                                                                                                                                                                                       |
 | Unused `src/integrations/supabase/client.server.ts` | Service-role helper, imported nowhere and its env var is unset.                                                                                                                                                                                                                                                                              |
-| Test residue                                        | Two synthetic lessons (`Spaced Repetition (synthetic demo)` and `Acceptance check — synthetic spaced-repetition clip`), 5 indexed resources, 2 private videos and 1 unanswered exam attempt. Every one of the 7 stored objects resolves to those lessons; there are no orphaned objects. Safe to remove — section 7 lists the exact records. |
+| Test residue                                        | Removed on 1 Nov 2026 after a verified local backup: the two documented synthetic lessons, their 5 indexed resources, 10 chunks, 4 tutor exchanges, 3 quiz attempts, 2 progress rows, 1 note and all 7 linked Storage objects (2 videos, 5 documents). The separate “Ellipse” lesson and valid demo courses were preserved. |
 | Fresh-database provisioning test                    | Not executed: `supabase db reset`/`db dump` need a running Docker daemon, which this machine does not have. Covered instead by object-level coverage (221/221 live objects traced to a repository migration) and a reconciled migration history. See section 7.                                                                              |
 
 ## 6. Manual actions for you
 
 The local upload, caption, playback, tutor, citation and future-content paths
 were exercised end to end on 30 Oct, so no repeat is required to review them.
-The lesson named "Acceptance check — synthetic spaced-repetition clip" in
-**Your library** is the artifact of that run; delete it if you do not want it.
-Still worth checking by hand: sign-out, a second account's isolation, and the
-quiz/exam/interview drill flows.
+The synthetic acceptance lessons and test account were removed after a verified
+local backup. Still worth checking by hand: sign-out, a second account's
+isolation, and the quiz/exam/interview drill flows.
 
 Optional:
 
 1. In the Supabase dashboard, enable leaked-password protection (advisor warn).
-2. `horizon.acc.b.2026@example.com` does not exist and never did. The second
-   account used for the isolation test is the confirmed test user
-   `horizon-e2e-1792954009355@example.com` (profile "Horizon verification
-   learner"); it owns no lessons or resources. Remove it from
-   **Authentication → Users** if you do not want it carried into the new project.
+2. The confirmed synthetic E2E test account and its profile have been removed.
+   The operator account and two unclassified accounts were preserved.
 3. Nothing is pending for migration history: the last untracked version is now
    recovered in the repository and the local/remote sets reconcile (section 7).
 4. To download the original MIT lecture videos locally, place the course MP4s

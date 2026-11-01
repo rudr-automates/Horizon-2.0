@@ -1,6 +1,12 @@
 # Offline finale package inventory
 
-This workspace currently contains the source documents needed to assemble the reviewer package. It is not yet a complete offline package: the final PPTX, recorded demo, exported legal sample course media and a verified deployment receipt are absent.
+This workspace contains an editable six-slide presentation and synthetic sample dataset alongside the source documents. It is not yet a complete release package: no recorded demo or verified production deployment receipt is available.
+
+## Present deliverables
+
+- [Competition presentation](../deliverables/Horizon_2.0_Competition_Final_Presentation.pptx) — six editable slides, rendered and visually inspected; artifact import validation passed. Native PowerPoint rendering was not independently checked.
+- [Synthetic sample dataset ZIP](../deliverables/horizon-sample-dataset.zip) — archive extraction verified. It contains generated MP4, matching VTT, synthetic PPTX, metadata with expected questions/evidence locators, and README. No user-supplied MKV or private course export is included.
+- [Extracted sample files](../deliverables/horizon-sample-dataset/).
 
 ## Included source documents
 
@@ -14,10 +20,8 @@ This workspace currently contains the source documents needed to assemble the re
 
 ## Required before judging
 
-1. Build the six-content-slide editable PowerPoint from the approved narrative; include app/repository links and evidence caveats.
-2. Capture and verify the real demonstration video (maximum two minutes) using [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
-3. Export only a legally usable course dataset (video, transcript, PDF/PPT, expected questions and evidence); exclude all private and copyrighted local media.
-4. Attach the actual READY production deployment and commit receipt after authorized remote release.
-5. Copy the final verified PPTX, MP4, legal sample dataset, architecture, evaluation, API, setup, and operations runbook into the offline handoff folder.
+1. Capture and verify the real demonstration video (maximum two minutes) using [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+2. Complete the gated Supabase migration, worker setup, end-to-end transcription acceptance and production deployment; attach its verified URL and commit receipt.
+3. Copy the final PPTX, recorded MP4, sample dataset, architecture, evaluation, API, setup and operations runbook into the offline handoff folder.
 
 Do not describe this inventory as a complete reviewer-ready package until every required file exists and has been opened/checked offline.
